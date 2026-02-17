@@ -40,7 +40,7 @@ const LawyerArbitrationDetails = () => {
     : [allArbitrationsData];
 
   const arbitrationData = arbitrationsArray.find(
-    (arb) => arb.arbitrationId === id || arb._id === id
+    (arb) => arb.arbitrationId === id || arb._id === id,
   );
 
   // Check if lawyer has access to this arbitration
@@ -53,7 +53,7 @@ const LawyerArbitrationDetails = () => {
       ) {
         return plaintiff.representatives.some(
           (rep) =>
-            rep.email === currentLawyerEmail && rep.case_status === "running"
+            rep.email === currentLawyerEmail && rep.case_status === "running",
         );
       }
       return false;
@@ -71,7 +71,7 @@ const LawyerArbitrationDetails = () => {
       // Find matching arbitrator in the database
       const dbArbitrator = arbitratorsData.find(
         (dbArb) =>
-          dbArb.email === arbitrator.email || dbArb.name === arbitrator.name
+          dbArb.email === arbitrator.email || dbArb.name === arbitrator.name,
       );
 
       return {
@@ -101,7 +101,7 @@ const LawyerArbitrationDetails = () => {
         title: arbitrationData.caseTitle,
         status: arbitrationData.arbitration_status?.toLowerCase() || "ongoing",
         suitValue: `BDT ${parseInt(
-          arbitrationData.suitValue || 0
+          arbitrationData.suitValue || 0,
         ).toLocaleString()}`,
         nature: arbitrationData.disputeNature,
         nextHearing: arbitrationData.sessionData?.sessionDateTime,
@@ -125,7 +125,7 @@ const LawyerArbitrationDetails = () => {
                 return plaintiff.representatives.some(
                   (rep) =>
                     rep.email === currentLawyerEmail &&
-                    rep.case_status === "running"
+                    rep.case_status === "running",
                 );
               }
               return false;
