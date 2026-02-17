@@ -6,7 +6,7 @@ import {
   FaRegWindowClose,
 } from "react-icons/fa";
 
-const LawyerArbHearing = ({ hearings }) => {
+const LawyerArbHearing = ({ hearings = [] }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({
     type: "",
@@ -15,7 +15,11 @@ const LawyerArbHearing = ({ hearings }) => {
   });
 
   const openModal = (type, content, hearingDate) => {
-    setModalContent({ type, content, hearingDate });
+    setModalContent({
+      type,
+      content: content || "No details provided.",
+      hearingDate,
+    });
     setShowModal(true);
   };
 
@@ -25,14 +29,19 @@ const LawyerArbHearing = ({ hearings }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return { date: "-", time: "-" };
+
     const date = new Date(dateString);
+
     return {
       date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
-  // Modal Component
   const DetailModal = () => {
     if (!showModal) return null;
 
@@ -102,44 +111,46 @@ const LawyerArbHearing = ({ hearings }) => {
         </h2>
       </div>
 
-      {hearings.length > 0 ? (
+      {hearings && hearings.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Hearing Date
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Arbitrator 1 Notes
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Arbitrator 2 Notes
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Arbitrator 3 Notes
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Result
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Documents Required
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Meeting Link
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-100">
-                  Attendance
-                </th>
+                {[
+                  "Hearing Date",
+                  "Arbitrator 1 Notes",
+                  "Arbitrator 2 Notes",
+                  "Arbitrator 3 Notes",
+                  "Result",
+                  "Documents Required",
+                  "Meeting Link",
+                  "Attendance",
+                ].map((title) => (
+                  <th
+                    key={title}
+                    className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase bg-gray-100"
+                  >
+                    {title}
+                  </th>
+                ))}
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
-              {hearings.map((hearing) => {
-                const { date, time } = formatDate(hearing.date);
+              {hearings.map((hearing, index) => {
+                const { date, time } = formatDate(hearing?.date);
                 const hearingDateTime = `${date} ${time}`;
 
+                const note1 = hearing?.arbitrator1Notes || "No notes provided.";
+                const note2 = hearing?.arbitrator2Notes || "No notes provided.";
+                const note3 = hearing?.arbitrator3Notes || "No notes provided.";
+                const documents =
+                  hearing?.documentsRequired || "No documents required.";
+                const attendance = hearing?.attendance || "Not specified.";
+                const result = hearing?.result || "Pending";
+
                 return (
-                  <tr key={hearing.id} className="hover:bg-gray-50">
+                  <tr key={hearing?.id || index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900">
                         {date}
@@ -147,97 +158,40 @@ const LawyerArbHearing = ({ hearings }) => {
                       <div className="text-sm text-gray-500">{time}</div>
                     </td>
 
-                    {/* Arbitrator 1 Notes */}
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div
-                        className="bg-blue-50 p-3 rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors group"
-                        onClick={() =>
-                          openModal(
-                            "notes",
-                            hearing.arbitrator1Notes,
-                            hearingDateTime,
-                          )
-                        }
-                      >
-                        <p className="text-gray-700 line-clamp-3 text-sm">
-                          {hearing.arbitrator1Notes}
-                        </p>
-                        {hearing.arbitrator1Notes.length > 100 && (
-                          <span className="text-xs text-blue-600 mt-1 inline-block font-medium">
-                            Click to expand
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Arbitrator 2 Notes */}
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div
-                        className="bg-green-50 p-3 rounded-lg border border-green-100 cursor-pointer hover:bg-green-100 transition-colors group"
-                        onClick={() =>
-                          openModal(
-                            "notes",
-                            hearing.arbitrator2Notes,
-                            hearingDateTime,
-                          )
-                        }
-                      >
-                        <p className="text-gray-700 line-clamp-3 text-sm">
-                          {hearing.arbitrator2Notes}
-                        </p>
-                        {hearing.arbitrator2Notes.length > 100 && (
-                          <span className="text-xs text-green-600 mt-1 inline-block font-medium">
-                            Click to expand
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Arbitrator 3 Notes */}
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div
-                        className="bg-purple-50 p-3 rounded-lg border border-purple-100 cursor-pointer hover:bg-purple-100 transition-colors group"
-                        onClick={() =>
-                          openModal(
-                            "notes",
-                            hearing.arbitrator3Notes,
-                            hearingDateTime,
-                          )
-                        }
-                      >
-                        <p className="text-gray-700 line-clamp-3 text-sm">
-                          {hearing.arbitrator3Notes}
-                        </p>
-                        {hearing.arbitrator3Notes.length > 100 && (
-                          <span className="text-xs text-purple-600 mt-1 inline-block font-medium">
-                            Click to expand
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    {[note1, note2, note3].map((note, idx) => (
+                      <td key={idx} className="px-6 py-4 text-sm max-w-xs">
+                        <div
+                          className="bg-blue-50 p-3 rounded-lg border cursor-pointer"
+                          onClick={() =>
+                            openModal("notes", note, hearingDateTime)
+                          }
+                        >
+                          <p className="line-clamp-3 text-sm">{note}</p>
+                          {note.length > 100 && (
+                            <span className="text-xs text-blue-600 font-medium">
+                              Click to expand
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    ))}
 
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        {hearing.result}
+                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        {result}
                       </span>
                     </td>
 
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                    <td className="px-6 py-4 text-sm max-w-xs">
                       <div
-                        className="bg-gray-50 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors group"
+                        className="bg-gray-50 p-3 rounded-lg border cursor-pointer"
                         onClick={() =>
-                          openModal(
-                            "documents",
-                            hearing.documentsRequired,
-                            hearingDateTime,
-                          )
+                          openModal("documents", documents, hearingDateTime)
                         }
                       >
-                        <p className="text-gray-700 line-clamp-3 text-sm">
-                          {hearing.documentsRequired}
-                        </p>
-                        {hearing.documentsRequired.length > 100 && (
-                          <span className="text-xs text-gray-600 mt-1 inline-block font-medium">
+                        <p className="line-clamp-3 text-sm">{documents}</p>
+                        {documents.length > 100 && (
+                          <span className="text-xs text-gray-600 font-medium">
                             Click to expand
                           </span>
                         )}
@@ -245,21 +199,25 @@ const LawyerArbHearing = ({ hearings }) => {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <a
-                        href={hearing.meetLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        <FaVideo className="mr-2" />
-                        Join Meeting
-                      </a>
+                      {hearing?.meetLink ? (
+                        <a
+                          href={hearing.meetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100"
+                        >
+                          <FaVideo className="mr-2" />
+                          Join Meeting
+                        </a>
+                      ) : (
+                        "-"
+                      )}
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <FaCheckCircle className="mr-1" />
-                        {hearing.attendance}
+                        {attendance}
                       </span>
                     </td>
                   </tr>
@@ -275,7 +233,7 @@ const LawyerArbHearing = ({ hearings }) => {
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
               No Hearings Scheduled
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500">
               No hearings have been scheduled for this case yet.
             </p>
           </div>
