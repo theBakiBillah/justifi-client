@@ -71,6 +71,11 @@ const DashboardLeft = () => {
       path: "/dashboard/my-arbitrations",
       icon: <FaBalanceScale className="text-lg" />,
     },
+    {
+      name: "My Mediations",
+      path: "/dashboard/my-mediations",
+      icon: <FaHandshake className="text-lg" />,
+    },
   ];
 
   const lawyerLinks = [
