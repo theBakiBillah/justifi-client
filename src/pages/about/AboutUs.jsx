@@ -10,108 +10,108 @@ const AboutUs = () => {
       id: 1,
       content:
         "Proesent sapien massa, convellis a pelientesque nec, egesties non nisi. Vestibulum or diam sit amet quem. Excellent service and professional team!",
-      name: "John Doe",
-      location: "Vancouver",
-      image: "images/client1.jpg",
+      name: "Shafin Ahmed",
+      location: "Dhaka, Bangladesh",
+      image: "src/assets/images/image1.png",
     },
     {
       id: 2,
       content:
         "The legal team provided exceptional guidance throughout our corporate restructuring. Their expertise and attention to detail were impressive.",
-      name: "Jessica Smith",
-      location: "Toronto",
-      image: "images/client2.jpg",
+      name: "Tahmid Pronoy",
+      location: "Dhaka, Bangladesh",
+      image: "src/assets/images/image1.png",
     },
     {
       id: 3,
       content:
         "Outstanding litigation support! They handled our complex case with professionalism and achieved excellent results for our company.",
-      name: "Steve Rogers",
-      location: "Montreal",
-      image: "images/client3.jpg",
+      name: "Arpon Kar",
+      location: "Barisal, Bangladesh",
+      image: "src/assets/images/image1.png",
     },
     {
       id: 4,
       content:
         "Their intellectual property team protected our patents effectively. Quick response time and thorough understanding of technology law.",
-      name: "Michael Wilson",
-      location: "Calgary",
-      image: "images/client4.jpg",
+      name: "Maskawat Anid",
+      location: "Dhaka, Bangladesh",
+      image: "src/assets/images/image1.png",
     },
     {
       id: 5,
       content:
         "Family law matters handled with compassion and expertise. They made a difficult process much easier with their supportive approach.",
-      name: "Emily Johnson",
-      location: "Ottawa",
-      image: "images/client5.jpg",
+      name: "Hridoy Ahmed",
+      location: "Noakhali, Bangladesh",
+      image: "src/assets/images/image1.png",
     },
   ];
 
   const teamMembers = [
     {
       id: 1,
-      name: "John Doe",
-      position: "Senior Legal Counsel",
+      name: "Md. Nahidur Rahman",
+      position: "Managing Director",
       description:
         "15+ years specializing in corporate law and international business transactions.",
-      image: "images/team1.jpg",
+      image: "src/assets/images/palash.png",
       animationDelay: "0.1s",
     },
     {
       id: 2,
-      name: "Jessica Smith",
-      position: "Corporate Lawyer",
+      name: "Md. Naimur Rahman",
+      position: "Chief Executive Officer",
       description:
         "Expert in M&A and corporate governance with extensive international experience.",
-      image: "images/team2.jpg",
+      image: "src/assets/images/piash.png",
       animationDelay: "0.2s",
     },
     {
       id: 3,
-      name: "Steve Rogers",
-      position: "Litigation Specialist",
+      name: "Mehedi Hasan",
+      position: "Chief Operating Officer",
       description:
         "Renowned trial lawyer with exceptional track record in complex commercial litigation.",
-      image: "images/team3.jpg",
+      image: "src/assets/images/Mehedi.png",
       animationDelay: "0.3s",
     },
     {
       id: 4,
-      name: "Michael Wilson",
-      position: "Intellectual Property",
+      name: "Nishat Farjana Arpy",
+      position: "Chief Financial Officer",
       description:
         "Leading IP attorney with expertise in patent law and technology licensing.",
-      image: "images/team4.jpg",
+      image: "src/assets/images/arpy.png",
       animationDelay: "0.4s",
     },
     {
       id: 5,
-      name: "Emily Johnson",
-      position: "Family Law Expert",
+      name: "Molla Baki Billah",
+      position: "Chief Technology Officer",
       description:
         "Compassionate family law specialist focused on achieving optimal outcomes for families.",
-      image: "images/team5.jpg",
+      image: "src/assets/images/baki.png",
       animationDelay: "0.5s",
     },
     {
       id: 6,
-      name: "Robert Brown",
-      position: "Real Estate Attorney",
+      name: "Asif Ahmed Tushar",
+      position: "Chief Marketing Officer",
       description:
         "Expert in commercial real estate transactions and property development law.",
-      image: "images/team6.jpg",
+      image: "src/assets/images/asif.png",
       animationDelay: "0.6s",
     },
   ];
 
   const logos = [
-    "images/logo1.png",
-    "images/logo2.png",
-    "images/logo3.png",
-    "images/logo4.png",
-    "images/logo5.png",
-    "images/logo6.png",
+    "src/assets/images/logo1.png",
+    "src/assets/images/logo2.png",
+    "src/assets/images/logo3.png",
+    "src/assets/images/logo4.png",
+    "src/assets/images/logo5.png",
+    "src/assets/images/logo6.png",
   ];
 
   const getVisibleTestimonialsCount = () => {
@@ -236,10 +236,10 @@ const AboutUs = () => {
           </div>
         </div>
 
-        {/* Associations & Memberships */}
+        {/* Our Clients */}
         <div className="mb-20">
           <h2 className="text-3xl font-serif font-bold text-[#1e2a45] text-center mb-4 animate-fade-in-up">
-            Associations & Memberships
+            Our Clients
           </h2>
           <div className="w-24 h-1 bg-[#c8a97e] mx-auto mb-6 animate-glow-pulse"></div>
           <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto animate-fade-in-up">
@@ -267,7 +267,7 @@ const AboutUs = () => {
         <div className="mb-20">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-serif font-bold text-[#1e2a45] mb-4 animate-zoom-in-rotate">
-              Our Legal Team
+              Our Team Mebers
             </h2>
             <div className="w-24 h-1 bg-[#c8a97e] mx-auto mb-6 animate-glow-pulse"></div>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg animate-slide-in-blurred">

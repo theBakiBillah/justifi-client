@@ -88,7 +88,6 @@ const MyArbitrations = () => {
                         return new Date(b.submissionDate || 0) - new Date(a.submissionDate || 0);
                     case 'value':
                         const valueA = parseFloat((a.suitValue || '0').replace(/[^\d.]/g, '') || 0);
-                        const valueB = parseFloat((b.suitValue || '0').replace(/[^\d.]/g, '') || 0);
                         return valueB - valueA;
                     case 'title':
                         return (a.caseTitle || '').localeCompare(b.caseTitle || '');

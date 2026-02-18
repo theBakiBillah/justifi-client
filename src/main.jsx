@@ -28,18 +28,27 @@ import Mediator from "./pages/mediator/Mediator";
 import AuthProvider from "./providers/AuthProviders";
 import Root from "./routes/Root";
 import MyArbitrations from "./dashboard/userDashboard/pages/MyArbitrations";
+import ArbitrationDetails from "./dashboard/userDashboard/pages/ArbitrationDetails";
 import AllUsers from "./dashboard/admin/pages/AllUsers";
 import UserProfile from "./dashboard/userDashboard/pages/UserProfile";
-import LawyerManagement from "./dashboard/admin/pages/LawyerManagement";
-import ArbitratorManagement from "./dashboard/admin/pages/ArbitratorManagement";
+import LawyerManagement from "./dashboard/admin/pages/lawyerManagement/LawyerManagement";
+import ArbitratorManagement from "./dashboard/admin/pages/arbitratorsManagement/ArbitratorManagement";
 import MediatorManagement from "./dashboard/admin/pages/MediatorManagement";
 import MyArbitrationFile from "./dashboard/ArbitratorDashboard/pages/MyArbitrationFile"; 
 import ArbitrationDetail from "./dashboard/ArbitratorDashboard/pages/ArbitrationDetail";
- import ArbitratorProfile from "./dashboard/ArbitratorDashboard/pages/ArbitratorProfile";
  import Notification from "./dashboard/ArbitratorDashboard/pages/Notification";
 import Finance from "./dashboard/ArbitratorDashboard/pages/Finance";
 import UpcomingHearings from './dashboard/ArbitratorDashboard/pages/UpcommingHearing';
 import HearingDetails from './dashboard/ArbitratorDashboard/pages/HearingDetails';
+import ArbitrationsManagement from "./dashboard/admin/pages/arbitrationManagement/ArbitrationsManagement";
+import AdminArbitrationDetails from "./dashboard/admin/pages/arbitrationManagement/AdminArbitrationDetails";
+import Arbitration_Agreement from "./dashboard/admin/pages/Arbitration_Agreement";
+import Mediation_Agreement from "./dashboard/admin/pages/Mediation_Agreement";
+import AboutUs from "./pages/about/AboutUs";
+import LawyerArbitration from "./dashboard/lawyerDasgboard/pages/LawyerArbitration";
+import LawyerArbitrationDetails from "./dashboard/lawyerDasgboard/pages/LawyerArbitrationDetails";
+import ArbitratorProfile from "./dashboard/arbitratorDashboard/pages/ArbitratorProfile";
+
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")).render(
@@ -61,6 +70,7 @@ createRoot(document.getElementById("root")).render(
                             element={<BookLawyer />}
                         />
 
+                        <Route path="/about" element={<AboutUs />} />
                         <Route path="/blog" element={<Blog />} />
                         <Route path="/blog/:blogId" element={<BlogDetails />} />
                         <Route path="/arbitrators" element={<Arbitrator />} />
@@ -101,10 +111,13 @@ createRoot(document.getElementById("root")).render(
                         />
                         
                         <Route
+                            path="arbitrator-profile/:email"
+                            element={<ArbitratorProfile />}
+                        />
+                        <Route
                             path="appointments"
                             element={<LawyerAppointments />}
                         />
-
                         <Route path="user-profile" element={<UserProfile />} />
                         <Route
                             path="my-appointments"
@@ -114,6 +127,31 @@ createRoot(document.getElementById("root")).render(
                             path="my-arbitrations"
                             element={<MyArbitrations />}
                         />
+                        <Route
+                            path="my-arbitrations/:id"
+                            element={<ArbitrationDetails />}
+                        />
+                        <Route
+                            path="lawyer-arbitrations"
+                            element={<LawyerArbitration />}
+                        />
+                        <Route
+                            path="lawyer-arbitrations/:id"
+                            element={<LawyerArbitrationDetails />}
+                        />
+
+                        <Route path="arbitrator-profile/:email" element={<ArbitratorProfile />} />
+                        <Route path="arb-arbitrations" element={<MyArbitrationFile />} />
+                        <Route path="arbitration-details/:arbitrationId" element={< ArbitrationDetail/>} />
+                        <Route path="notification" element={<Notification />} />
+                        <Route path="Finance" element={<Finance />} />
+                        <Route path="upcoming-hearings" element={<UpcomingHearings />} />
+                        <Route path="hearing-details/:arbitrationId/:hearingId" element={<HearingDetails />} />
+                    </Route>
+
+
+                    {/* Admin routes */}
+                    <Route path="/admin" element={<Dashboard />}>
                         <Route path="all-users" element={<AllUsers />} />
                         <Route
                             path="all-lawyers"
@@ -126,22 +164,25 @@ createRoot(document.getElementById("root")).render(
                         <Route
                             path="all-mediators"
                             element={<MediatorManagement />}
+                        />             
+
+                        <Route
+                            path="arbitrations-management"
+                            element={<ArbitrationsManagement />}
                         />
-                        
-                        <Route path="arbitrator-profile/:email" element={<ArbitratorProfile />} />
-                        <Route path="arb-arbitrations" element={<MyArbitrationFile />} />
-                        <Route path="arbitration-details/:arbitrationId" element={< ArbitrationDetail/>} />
-                        <Route path="notification" element={<Notification />} />
-                        <Route path="Finance" element={<Finance />} />
-                        <Route path="upcoming-hearings" element={<UpcomingHearings />} />
-                        <Route path="hearing-details/:arbitrationId/:hearingId" element={<HearingDetails />} />
+                        <Route
+                            path="arbitrations/:id"
+                            element={<AdminArbitrationDetails />}
+                        />
+                        <Route
+                            path="mediation-agreement/:caseId"
+                            element={<Mediation_Agreement />}
+                        />
+                        <Route
+                            path="arbitration-agreement/:caseId"
+                            element={<Arbitration_Agreement />}
+                        />
 
-
-                        
-
-                        
-
-                        
                     </Route>
                 </Routes>
             </QueryClientProvider>

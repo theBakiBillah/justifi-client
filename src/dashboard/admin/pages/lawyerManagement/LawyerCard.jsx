@@ -4,7 +4,7 @@ import {
     FaLanguage,
     FaMapMarkerAlt,
     FaStar,
-    FaTrash
+    FaTrash,
 } from "react-icons/fa";
 
 const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {

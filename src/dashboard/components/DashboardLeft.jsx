@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import {
     FaBalanceScale,
-    FaChevronLeft,
-    FaChevronRight,
     FaDashcube,
     FaGavel,
     FaHandshake,
@@ -14,9 +12,8 @@ import {
     FaComments, 
     FaMoneyBillWave, 
     FaBell,
-    FaFileContract,
-    FaChartLine,
-    FaCog
+    FaChevronLeft,
+    FaChevronRight
 } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Loading from "../../common/loading/Loading";
@@ -49,7 +46,7 @@ const DashboardLeft = () => {
                 navigate(redirectPath, { replace: true });
             }
         }
-    }, [location.pathname, userRole, navigate]);
+    }, [location.pathname, userRole, navigate, currentUser?.email]);
 
     const getRoleDisplayName = (role) => {
         const roleMap = {
@@ -115,12 +112,12 @@ const DashboardLeft = () => {
             icon: <FaCalendarAlt className="text-lg" />,
         },
         {
-            name: "Finance ",
-            path: "/dashboard/Finance",
+            name: "Finance",
+            path: "/dashboard/finance",
             icon: <FaMoneyBillWave className="text-lg" />,
         },
         {
-            name: "notification ",
+            name: "Notification",
             path: "/dashboard/notification",
             icon: <FaBell className="text-lg" />,
         },
@@ -142,32 +139,32 @@ const DashboardLeft = () => {
     const adminLinks = [
         {
             name: "All Users",
-            path: "/dashboard/all-users",
+            path: "/admin/all-users",
             icon: <FaUsers className="text-lg" />,
         },
         {
-            name: "Laywers Management",
-            path: "/dashboard/all-lawyers",
+            name: "Lawyers Management",
+            path: "/admin/all-lawyers",
             icon: <FaGavel className="text-lg" />,
         },
         {
             name: "Arbitrators Management",
-            path: "/dashboard/all-arbitrators",
+            path: "/admin/all-arbitrators",
             icon: <FaBalanceScale className="text-lg" />,
         },
         {
-            name: "All Arbitratons",
-            path: "/dashboard/all-arbitrations",
+            name: "All Arbitrations",
+            path: "/admin/arbitrations-management",
             icon: <FaBalanceScale className="text-lg" />,
         },
         {
             name: "Mediator Management",
-            path: "/dashboard/all-mediators",
+            path: "/admin/all-mediators",
             icon: <FaHandshake className="text-lg" />,
         },
         {
-            name: "All Mediatons",
-            path: "/dashboard/all-mediations",
+            name: "All Mediations",
+            path: "/admin/all-mediations",
             icon: <FaHandshake className="text-lg" />,
         },
     ];
@@ -244,9 +241,7 @@ const DashboardLeft = () => {
                     {menuItems.map((item) => (
                         <li key={item.name}>
                             <button
-                                onClick={() =>
-                                    handleNavigation(item.path, item.name)
-                                }
+                                onClick={() => handleNavigation(item.path, item.name)}
                                 className={`w-full flex items-center space-x-3 p-3 rounded-xl transition-all duration-200 hover:bg-teal-700 hover:transform hover:scale-105 ${
                                     isActiveLink(item.path)
                                         ? "bg-white text-teal-700 shadow-lg font-semibold"
@@ -255,17 +250,13 @@ const DashboardLeft = () => {
                             >
                                 <span
                                     className={`${
-                                        isActiveLink(item.path)
-                                            ? "text-teal-600"
-                                            : "text-white"
+                                        isActiveLink(item.path) ? "text-teal-600" : "text-white"
                                     }`}
                                 >
                                     {item.icon}
                                 </span>
                                 {!isCollapsed && (
-                                    <span className="text-sm capitalize">
-                                        {item.name}
-                                    </span>
+                                    <span className="text-sm capitalize">{item.name}</span>
                                 )}
                             </button>
                         </li>
@@ -279,15 +270,13 @@ const DashboardLeft = () => {
                     <figure className="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center">
                         <img
                             className="w-11 h-11 rounded-full"
-                            src={currentUser.photo}
-                            alt=""
+                            src={currentUser?.photo}
+                            alt="Profile"
                         />
                     </figure>
                     {!isCollapsed && (
                         <div>
-                            <p className="text-sm font-medium">
-                                {currentUser.name}
-                            </p>
+                            <p className="text-sm font-medium">{currentUser?.name || "User"}</p>
                             <p className="text-xs text-teal-200">
                                 {getRoleDisplayName(userRole)}
                             </p>
@@ -300,9 +289,7 @@ const DashboardLeft = () => {
                     className="flex items-center space-x-3 p-3 rounded-lg text-teal-100 hover:bg-teal-700 transition-colors duration-200"
                 >
                     <FaHome className="text-white" />
-                    {!isCollapsed && (
-                        <span className="text-sm">Go to Home</span>
-                    )}
+                    {!isCollapsed && <span className="text-sm">Go to Home</span>}
                 </Link>
             </div>
 

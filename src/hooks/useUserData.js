@@ -26,12 +26,22 @@ export const useUserData = () => {
 
     const userRole = currentUser?.role || "user";
 
+    // All user data
+    const { data: allUsers } = useQuery({
+        queryKey: ["allUsers"],
+        queryFn: async () => {
+            const res = await axiosPublic.get("/users");
+            return res.data;
+        },
+    });
+
     return {
         currentUser,
         userRole,
         isLoading,
         error,
         refetchCurrentUser,
+        allUsers,
     };
 };
 

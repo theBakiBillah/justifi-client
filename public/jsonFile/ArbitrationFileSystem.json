@@ -1,0 +1,75 @@
+{
+  "_id": "arbitrationFile_001",
+
+  "arbitrationId": "ARB-6993F-33355139",
+  "caseId": "6993fc6cfe73ea6a3e09024c",
+
+  "agreementFiles": [
+    {
+      "fileTitle": "Arbitration Agreement Final",
+      "fileName": "arbitration_agreement_signed.pdf",
+      "filePath": "/uploads/ARB-6993F-33355139/agreement/agreement_v1.pdf",
+      "fileSize": "2.4MB",
+      "uploadedBy": {
+        "role": "admin",
+        "email": "admin@justifi.com"
+      },
+      "uploadedAt": "2026-02-17T11:30:00Z",
+      "version": 1
+    }
+  ],
+
+  "plaintiffDocuments": [
+    {
+      "partyId": "plaintiff-1",
+      "name": "md mehedi hasan",
+      "email": "mhasan221082@bscse.uiu.ac.bd",
+      "files": [
+        {
+          "fileTitle": "Contract Copy",
+          "fileName": "contract.pdf",
+          "filePath": "/uploads/ARB-6993F-33355139/plaintiff-1/contract.pdf",
+          "mimeType": "application/pdf",
+          "fileSize": "1.2MB",
+          "uploadedAt": "2026-02-18T04:15:00Z"
+        }
+      ]
+    },
+    {
+      "partyId": "plaintiff-2",
+      "name": "hasan",
+      "email": "hasan1013401@gmail.com",
+      "files": [
+        {
+          "fileTitle": "Bank Statement",
+          "fileName": "bank_statement.pdf",
+          "filePath": "/uploads/ARB-6993F-33355139/plaintiff-2/bank_statement.pdf",
+          "mimeType": "application/pdf",
+          "fileSize": "900KB",
+          "uploadedAt": "2026-02-18T05:00:00Z"
+        }
+      ]
+    }
+  ],
+
+  "defendantDocuments": [
+    {
+      "partyId": "defendant-1",
+      "name": "Shuvro",
+      "email": "mehedi1013401@gmail.com",
+      "files": [
+        {
+          "fileTitle": "Response Document",
+          "fileName": "response.pdf",
+          "filePath": "/uploads/ARB-6993F-33355139/defendant-1/response.pdf",
+          "mimeType": "application/pdf",
+          "fileSize": "1.5MB",
+          "uploadedAt": "2026-02-19T03:00:00Z"
+        }
+      ]
+    }
+  ],
+
+  "createdAt": "2026-02-17T06:00:00Z",
+  "updatedAt": "2026-02-19T03:00:00Z"
+}

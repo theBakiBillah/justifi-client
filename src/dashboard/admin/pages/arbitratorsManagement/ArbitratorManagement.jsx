@@ -1,29 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
-import useAxiosSecure from "../../../hooks/useAxiosSecure";
-import LawyerCard from "../components/LawyerCard";
-import LawyerModal from "../components/LawyerModal";
-import PageHeader from "../components/PageHeader";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
+import ArbitratorCard from "./ArbitratorCard";
+import ArbitratorModal from "./ArbitratorModal";
+import PageHeader from "./PageHeader";
 
-const LawyerManagement = () => {
+const ArbitratorManagement = () => {
     const img_hosting_key = import.meta.env.VITE_IMG_HOSTING_KEY;
     const img_hosting_api = `https://api.imgbb.com/1/upload?key=${img_hosting_key}`;
+
     const axiosSecure = useAxiosSecure();
     const navigate = useNavigate();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { data: lawyers = [], refetch } = useQuery({
-        queryKey: ["lawyers"],
+    const { data: arbitrators = [], refetch } = useQuery({
+        queryKey: ["arbitrators"],
         queryFn: async () => {
-            const res = await axiosSecure.get("/all-lawyers");
+            const res = await axiosSecure.get("/all-arbitrators");
             return res.data;
         },
     });
 
     const [showModal, setShowModal] = useState(false);
+    const [editingArbitrator, setEditingArbitrator] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -33,37 +35,30 @@ const LawyerManagement = () => {
         gender: "Male",
         languages: [],
         specialization: [],
-        bar_id: "",
-        fee: "",
         description: "",
-        court: "",
-        experience: "",
-        successRate: "",
-        casesHandled: "",
-        rating: "",
         qualification: "",
     });
 
-    // Filter lawyers based on search term
-    const filteredLawyers = useMemo(() => {
-        if (!searchTerm) return lawyers;
+    // Filter arbitrators based on search term
+    const filteredArbitrators = useMemo(() => {
+        if (!searchTerm) return arbitrators;
 
         const lowercasedSearch = searchTerm.toLowerCase();
-        return lawyers.filter(
-            (lawyer) =>
-                lawyer.name.toLowerCase().includes(lowercasedSearch) ||
-                lawyer.email.toLowerCase().includes(lowercasedSearch) ||
-                lawyer.bar_id.toLowerCase().includes(lowercasedSearch) ||
-                lawyer.court.toLowerCase().includes(lowercasedSearch) ||
-                lawyer.qualification.toLowerCase().includes(lowercasedSearch) ||
-                lawyer.specialization.some((spec) =>
+        return arbitrators.filter(
+            (arbitrator) =>
+                arbitrator.name.toLowerCase().includes(lowercasedSearch) ||
+                arbitrator.email.toLowerCase().includes(lowercasedSearch) ||
+                arbitrator.qualification
+                    .toLowerCase()
+                    .includes(lowercasedSearch) ||
+                arbitrator.specialization.some((spec) =>
                     spec.toLowerCase().includes(lowercasedSearch)
                 ) ||
-                lawyer.languages.some((lang) =>
+                arbitrator.languages.some((lang) =>
                     lang.toLowerCase().includes(lowercasedSearch)
                 )
         );
-    }, [lawyers, searchTerm]);
+    }, [arbitrators, searchTerm]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -166,42 +161,42 @@ const LawyerManagement = () => {
             }
 
             const response = await axiosSecure.post(
-                "/add-lawyer",
+                "/add-arbitrator",
                 finalFormData
             );
 
             if (response.data.insertedId) {
-                toast.success("Lawyer added successfully!");
+                toast.success("Arbitrator added successfully!");
                 refetch();
                 closeModal();
             } else {
                 toast.error(
                     response.data.message ||
-                        "Failed to add lawyer. Please try again."
+                        "Failed to add the arbitrator. Please try again."
                 );
             }
         } catch (error) {
-            console.error("Error adding lawyer:", error);
+            console.error("Error adding the arbitrator:", error);
             toast.error("An error occurred while adding the lawyer.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleEdit = (lawyer) => {
-        // Redirect to LawyerProfile page with lawyer email as parameter
-        navigate(`/dashboard/lawyer-profile/${lawyer.email}`);
+    const handleEdit = (arbitrator) => {
+        // Redirect to ArbitratorProfile page with lawyer email as parameter
+        navigate(`/dashboard/arbitrator-profile/${arbitrator.email}`);
     };
 
-    const handleDelete = async (email) => {
-        if (window.confirm("Are you sure you want to delete this lawyer?")) {
+    const handleDelete = async (id) => {
+        if (
+            window.confirm("Are you sure you want to delete this arbitrator?")
+        ) {
             try {
-                await axiosSecure.delete(`/remove-lawyer/${email}`);
-                toast.success("Lawyer deleted successfully!");
+                await axiosSecure.delete(`/remove-arbitrator/${id}`);
                 refetch();
             } catch (error) {
-                console.error("Error deleting lawyer:", error);
-                toast.error("Failed to delete lawyer. Please try again.");
+                console.error("Error deleting arbitrator:", error);
             }
         }
     };
@@ -216,16 +211,10 @@ const LawyerManagement = () => {
             gender: "Male",
             languages: [],
             specialization: [],
-            bar_id: "",
-            fee: "",
             description: "",
-            court: "",
-            experience: "",
-            successRate: "",
-            casesHandled: "",
-            rating: "",
             qualification: "",
         });
+        setEditingArbitrator(null);
     };
 
     const openAddModal = () => {
@@ -235,6 +224,7 @@ const LawyerManagement = () => {
 
     const closeModal = () => {
         setShowModal(false);
+        setEditingArbitrator(null);
         resetForm();
     };
 
@@ -247,57 +237,52 @@ const LawyerManagement = () => {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <PageHeader
-                    onAddLawyer={openAddModal}
+                    title="Arbitrator Management"
+                    onAddArbitrator={openAddModal}
                     onSearch={handleSearch}
                     searchTerm={searchTerm}
+                    addButtonText="Add Arbitrator"
                 />
 
                 {/* Statistics Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     <div className="bg-white rounded-xl p-4 shadow-lg border border-blue-100">
                         <div className="text-2xl font-bold text-blue-600">
-                            {filteredLawyers.length}
+                            {filteredArbitrators.length}
                         </div>
                         <div className="text-gray-600 text-sm">
-                            {searchTerm ? "Filtered Lawyers" : "Total Lawyers"}
+                            {searchTerm
+                                ? "Filtered Arbitrators"
+                                : "Total Arbitrators"}
                         </div>
                     </div>
                     <div className="bg-white rounded-xl p-4 shadow-lg border border-green-100">
                         <div className="text-2xl font-bold text-green-600">
                             {
-                                filteredLawyers.filter((l) => l.experience >= 5)
-                                    .length
+                                filteredArbitrators.filter((a) =>
+                                    a.specialization.includes(
+                                        "arbitration trainer"
+                                    )
+                                ).length
                             }
                         </div>
                         <div className="text-gray-600 text-sm">
-                            Experienced (5+ years)
+                            Arbitration Trainers
                         </div>
                     </div>
                     <div className="bg-white rounded-xl p-4 shadow-lg border border-purple-100">
                         <div className="text-2xl font-bold text-purple-600">
-                            {filteredLawyers.length > 0
-                                ? Math.round(
-                                      (filteredLawyers.reduce(
-                                          (acc, lawyer) => acc + lawyer.rating,
-                                          0
-                                      ) /
-                                          filteredLawyers.length) *
-                                          10
-                                  ) / 10
-                                : 0}
+                            {
+                                new Set(
+                                    filteredArbitrators.flatMap(
+                                        (a) => a.languages
+                                    )
+                                ).size
+                            }
                         </div>
                         <div className="text-gray-600 text-sm">
-                            Average Rating
+                            Languages Supported
                         </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-4 shadow-lg border border-orange-100">
-                        <div className="text-2xl font-bold text-orange-600">
-                            {filteredLawyers.reduce(
-                                (acc, lawyer) => acc + lawyer.casesHandled,
-                                0
-                            )}
-                        </div>
-                        <div className="text-gray-600 text-sm">Total Cases</div>
                     </div>
                 </div>
 
@@ -305,29 +290,29 @@ const LawyerManagement = () => {
                 {searchTerm && (
                     <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
                         <p className="text-blue-700">
-                            Showing {filteredLawyers.length} lawyer
-                            {filteredLawyers.length !== 1 ? "s" : ""}
+                            Showing {filteredArbitrators.length} arbitrator
+                            {filteredArbitrators.length !== 1 ? "s" : ""}
                             matching "
                             <span className="font-semibold">{searchTerm}</span>"
-                            {filteredLawyers.length === 0 &&
-                                " - No lawyers found"}
+                            {filteredArbitrators.length === 0 &&
+                                " - No arbitrators found"}
                         </p>
                     </div>
                 )}
 
-                {/* Lawyers Grid */}
-                {filteredLawyers.length === 0 ? (
+                {/* Arbitrators Grid */}
+                {filteredArbitrators.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="text-gray-400 text-6xl mb-4">⚖️</div>
                         <h3 className="text-xl font-semibold text-gray-600 mb-2">
                             {searchTerm
-                                ? "No Lawyers Found"
-                                : "No Lawyers Found"}
+                                ? "No Arbitrators Found"
+                                : "No Arbitrators Found"}
                         </h3>
                         <p className="text-gray-500 mb-4">
                             {searchTerm
-                                ? "Try adjusting your search terms or browse all lawyers."
-                                : "Get started by adding your first lawyer to the system."}
+                                ? "Try adjusting your search terms or browse all arbitrators."
+                                : "Get started by adding your first arbitrator to the system."}
                         </p>
                         {searchTerm ? (
                             <button
@@ -341,16 +326,16 @@ const LawyerManagement = () => {
                                 onClick={openAddModal}
                                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg"
                             >
-                                Add Your First Lawyer
+                                Add Your First Arbitrator
                             </button>
                         )}
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredLawyers.map((lawyer) => (
-                            <LawyerCard
-                                key={lawyer._id}
-                                lawyer={lawyer}
+                        {filteredArbitrators.map((arbitrator) => (
+                            <ArbitratorCard
+                                key={arbitrator._id}
+                                arbitrator={arbitrator}
                                 onEdit={handleEdit}
                                 onDelete={handleDelete}
                                 searchTerm={searchTerm}
@@ -359,16 +344,15 @@ const LawyerManagement = () => {
                     </div>
                 )}
 
-                {/* Add Modal Only - No Edit Modal */}
-                <LawyerModal
+                {/* Add/Edit Modal */}
+                <ArbitratorModal
                     show={showModal}
                     onClose={closeModal}
                     onSubmit={handleSubmit}
                     formData={formData}
                     onInputChange={handleInputChange}
                     onArrayInput={handleArrayInput}
-                    isEditing={false}
-                    resetForm={resetForm}
+                    isEditing={!!editingArbitrator}
                     isSubmitting={isSubmitting}
                 />
             </div>
@@ -376,4 +360,4 @@ const LawyerManagement = () => {
     );
 };
 
-export default LawyerManagement;
+export default ArbitratorManagement;
