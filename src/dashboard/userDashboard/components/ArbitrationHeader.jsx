@@ -56,7 +56,7 @@ const ArbitrationHeader = ({ arbitration, currentUser }) => {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex-1">
                     <div className="flex items-center mb-3 flex-wrap gap-2">
-                        <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-white bg-opacity-20 backdrop-blur-sm ${getStatusColor(arbitration.arbitration_status)}`}>
+                        <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gray bg-opacity-20 backdrop-blur-sm ${getStatusColor(arbitration.arbitration_status)}`}>
                             {getStatusText(arbitration.arbitration_status)}
                         </span>
                         <span className="font-mono bg-black bg-opacity-20 px-3 py-1 rounded-lg text-sm">

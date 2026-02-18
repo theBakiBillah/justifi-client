@@ -1,25 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useAxiosSecure from "../../../../hooks/useAxiosSecure";
+import useArbData from "../../../../hooks/useArbData";
 import ArbitrationCard from "./ArbitrationCard";
 import SessionModal from "./SessionModal";
 
 const ArbitrationsManagement = () => {
-    const axiosSecure = useAxiosSecure();
+    const { allArbitrations, refetchArbitrations } = useArbData();
     const navigate = useNavigate();
     const [selectedArbitration, setSelectedArbitration] = useState(null);
     const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState("All");
     const [paymentFilter, setPaymentFilter] = useState("All");
-
-    const { data: allArbitrations = [], refetch } = useQuery({
-        queryKey: ["allArbitrations"],
-        queryFn: async () => {
-            const res = await axiosSecure.get("/all-arbitrations-admin");
-            return res.data;
-        },
-    });
 
     const openSessionModal = (arbitration) => {
         setSelectedArbitration(arbitration);
@@ -29,11 +20,13 @@ const ArbitrationsManagement = () => {
     const closeSessionModal = () => {
         setIsSessionModalOpen(false);
         setSelectedArbitration(null);
-        refetch();
+        refetchArbitrations();
     };
 
     const viewDetails = (arbitration) => {
-        navigate(`/admin/arbitrations/${arbitration._id}`, { state: { arbitration } });
+        navigate(`/admin/arbitrations/${arbitration._id}`, {
+            state: { arbitration },
+        });
     };
 
     const formatDate = (dateString) => {

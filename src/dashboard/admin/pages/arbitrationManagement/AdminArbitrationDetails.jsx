@@ -202,22 +202,50 @@ const AdminArbitrationDetails = () => {
                             Quick Actions
                         </h2>
                         <div className="space-y-3">
-                            <button
-                                onClick={() => openSessionModal(arbitration)}
-                                className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
-                            >
-                                Create Session
-                            </button>
+                            {!arbitration?.sessionData && (
+                                <button
+                                    onClick={() =>
+                                        openSessionModal(arbitration)
+                                    }
+                                    className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                                >
+                                    Create Session
+                                </button>
+                            )}
+                            {arbitration?.sessionData && (
+                                <button
+                                    onClick={() =>
+                                        openSessionModal(arbitration)
+                                    }
+                                    className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                                >
+                                    Update Session Date
+                                </button>
+                            )}
+
+                            {arbitration.arbitration_status === "Pending" && (
+                                <button
+                                    onClick={() =>
+                                        navigate(
+                                            `/admin/arbitrations/${arbitration._id}/update`,
+                                            { state: { arbitration } }
+                                        )
+                                    }
+                                    className="w-full px-4 py-3 bg-red-700 text-white rounded-md hover:bg-red-800 transition-colors font-medium"
+                                >
+                                    Cancel Case
+                                </button>
+                            )}
                             <button
                                 onClick={() =>
                                     navigate(
-                                        `/admin/arbitrations/${arbitration._id}/update`,
+                                        `/admin/arbitration-agreement/${arbitration._id}`,
                                         { state: { arbitration } }
                                     )
                                 }
-                                className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                                className="w-full px-4 py-3 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition-colors font-medium"
                             >
-                                Update Case
+                                Create Agreement
                             </button>
                             <button
                                 onClick={() =>
@@ -409,8 +437,6 @@ const AdminArbitrationDetails = () => {
                 <SessionModal
                     arbitration={selectedArbitration}
                     onClose={closeSessionModal}
-                    // onSessionCreated={refetch}
-                    // axiosSecure={axiosSecure}
                 />
             )}
         </div>

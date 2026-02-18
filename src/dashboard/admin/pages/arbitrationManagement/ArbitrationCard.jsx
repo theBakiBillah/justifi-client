@@ -134,12 +134,14 @@ const ArbitrationCard = ({
                         >
                             View Details
                         </button>
-                        <button
-                            onClick={() => onCreateSession(arbitration)}
-                            className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
-                        >
-                            Create Session
-                        </button>
+                        {!arbitration.sessionData && (
+                            <button
+                                onClick={() => onCreateSession(arbitration)}
+                                className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                            >
+                                Create Session
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

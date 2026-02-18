@@ -29,6 +29,7 @@ const ArbitrationDetails = () => {
         data: arbitration,
         isLoading,
         error,
+        refetch
     } = useQuery({
         queryKey: ["arbitration", id, currentUser?.email],
         queryFn: async () => {
@@ -93,6 +94,13 @@ const ArbitrationDetails = () => {
 
     const handleBackClick = () => {
         navigate('/dashboard/my-arbitrations');
+    };
+
+    // Handle arbitration data update after representative changes
+    const handleUpdateArbitration = (updatedArbitration) => {
+        // If you're using a state management that allows direct updates,
+        // you can update the cache here. Alternatively, refetch the data.
+        refetch();
     };
 
     // Helper function to check if case is active (Ongoing or Completed)
@@ -170,7 +178,12 @@ const ArbitrationDetails = () => {
                 {caseActive && (
                     <>
                         <ArbitratorsPanel arbitration={arbitration} />
-                        <Arb_RepresentativeSection />
+                        <Arb_RepresentativeSection 
+                            arbitrationData={arbitration}
+                            currentUserEmail={currentUser?.email}
+                            caseId={arbitration?._id || arbitration?.arbitrationId}
+                            onUpdateArbitration={handleUpdateArbitration}
+                        />
                         <Arb_DocumentsSection />
                         <Arb_HearingSection 
                             selectedHearing={selectedHearing}
