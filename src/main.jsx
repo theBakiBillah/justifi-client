@@ -42,6 +42,8 @@ import AboutUs from "./pages/about/AboutUs";
 import LawyerArbitration from "./dashboard/lawyerDasgboard/pages/LawyerArbitration";
 import LawyerArbitrationDetails from "./dashboard/lawyerDasgboard/pages/LawyerArbitrationDetails";
 import ArbitratorProfile from "./dashboard/arbitratorDashboard/pages/ArbitratorProfile";
+import MyMediation from "./dashboard/userDashboard/pages/MyMediation";
+import MediationDetails from "./dashboard/userDashboard/pages/MediationDetails";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +99,8 @@ createRoot(document.getElementById("root")).render(
               path="my-arbitrations/:id"
               element={<ArbitrationDetails />}
             />
+            <Route path="my-mediations" element={<MyMediation />} />
+            <Route path="my-mediations/:id" element={<MediationDetails />} />
             <Route path="lawyer-arbitrations" element={<LawyerArbitration />} />
             <Route
               path="lawyer-arbitrations/:id"
