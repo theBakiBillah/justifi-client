@@ -1,21 +1,38 @@
 import {
-    Calendar,
-    CalendarDays,
-    CheckCircle2,
-    Save,
-    Sun,
-    XCircle,
+  Calendar,
+  CalendarDays,
+  CheckCircle2,
+  Save,
+  Sun,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import useAxiosPublic from "../../../../hooks/useAxiosPublic";
 import useUserData from "../../../../hooks/useUserData";
+import { useQuery } from "@tanstack/react-query";
 
 const LawyerTimeSlots = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [timeSlots, setTimeSlots] = useState({});
   const axiosPublic = useAxiosPublic();
   const { currentUser } = useUserData();
+
+  const { data: availabilityData, refetch: refetchAvailability } = useQuery({
+    queryKey: ["availability", currentUser?.email],
+    queryFn: async () => {
+      const res = await axiosPublic.get(`/availability/${currentUser?.email}`);
+      return res.data;
+    },
+    enabled: !!currentUser?.email,
+  });
+
+  // Load availability data into state when it's fetched
+  useEffect(() => {
+    if (availabilityData?.availability) {
+      setTimeSlots(availabilityData.availability);
+    }
+  }, [availabilityData]);
 
   // Generate next 7 days (FIXED TIMEZONE ISSUE)
   const getNext7Days = () => {
@@ -80,7 +97,7 @@ const LawyerTimeSlots = () => {
   // Initialize or load saved slots for selected date
   useEffect(() => {
     if (selectedDate) {
-      // Check if we already have data for this date
+      // Check if we already have data for this date in timeSlots state
       if (!timeSlots[selectedDate]) {
         // Initialize all slots as false (unavailable) by default
         const initialSlots = {};
@@ -93,7 +110,7 @@ const LawyerTimeSlots = () => {
         }));
       }
     }
-  }, [selectedDate]);
+  }, [selectedDate, timeSlots]);
 
   // Toggle slot availability
   const toggleSlotAvailability = (slotId) => {
@@ -119,6 +136,12 @@ const LawyerTimeSlots = () => {
     ).length;
   };
 
+  // Check if a date has any available slots (for visual indicator)
+  const hasAvailableSlots = (dateValue) => {
+    if (!timeSlots[dateValue]) return false;
+    return Object.values(timeSlots[dateValue]).some(value => value === true);
+  };
+
   // Save slots
   const handleSaveSlots = async () => {
     try {
@@ -135,6 +158,8 @@ const LawyerTimeSlots = () => {
           position: "top-right",
           autoClose: 5000,
         });
+        // Refetch to get the latest data
+        refetchAvailability();
       }
     } catch (error) {
       console.error("Error saving slots:", error);
@@ -219,7 +244,7 @@ const LawyerTimeSlots = () => {
               <button
                 key={index}
                 onClick={() => setSelectedDate(date.value)}
-                className={`p-4 rounded-xl transition-all ${
+                className={`p-4 rounded-xl transition-all relative ${
                   selectedDate === date.value
                     ? "bg-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-300"
                     : "bg-white text-slate-700 hover:shadow-md border border-slate-200"
@@ -238,6 +263,10 @@ const LawyerTimeSlots = () => {
                   >
                     {date.label === "Today" ? "📅" : "📆"} {date.label}
                   </div>
+                )}
+                {/* Availability indicator dot */}
+                {hasAvailableSlots(date.value) && selectedDate !== date.value && (
+                  <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full"></div>
                 )}
               </button>
             ))}
