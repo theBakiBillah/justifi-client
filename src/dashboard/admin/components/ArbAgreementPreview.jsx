@@ -1,10 +1,15 @@
 // components/ArbAgreementPreview.jsx
 import React, { useEffect, useState } from "react";
-import { FaArrowLeft, FaDownload } from "react-icons/fa";
+import { FaArrowLeft, FaPaperPlane } from "react-icons/fa";
 import { jsPDF } from "jspdf";
+import { useNavigate } from "react-router-dom";
+import useAxiosSecure from "../../../hooks/useAxiosSecure";
 
 const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const navigate = useNavigate();
+  const axiosSecure = useAxiosSecure();
 
   useEffect(() => {
     if (formData && pdfContainerRef.current) {
@@ -48,977 +53,928 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
     return formData.justifiRepresentative.designation || "N/A";
   };
 
-  const generatePDF = async () => {
+  // Generate the PDF as a Blob (no download)
+  const buildPDFBlob = async () => {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
+
+    let yPos = margin;
+
+    const setHeaderFont = () => {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+    };
+
+    const setSubHeaderFont = () => {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+    };
+
+    const setNormalFont = () => {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+    };
+
+    const setSmallFont = () => {
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+    };
+
+    const checkPageBreak = (requiredSpace = 25) => {
+      if (yPos > pageHeight - requiredSpace) {
+        pdf.addPage();
+        yPos = margin;
+        return true;
+      }
+      return false;
+    };
+
+    const addText = (
+      text,
+      x = margin,
+      customYPos = null,
+      maxWidth = contentWidth,
+      align = "left",
+      lineHeight = 5,
+    ) => {
+      const currentY = customYPos !== null ? customYPos : yPos;
+      const lines = pdf.splitTextToSize(text, maxWidth);
+      pdf.text(lines, x, currentY, { align });
+      return lines.length * lineHeight;
+    };
+
+    // Title Section
+    setHeaderFont();
+    pdf.text("ARBITRATION AGREEMENT", pageWidth / 2, yPos, { align: "center" });
+    yPos += 8;
+
+    setNormalFont();
+    const agreementDateDisplay = formatDateForDisplay(formData.agreementDate);
+    pdf.text(`Date: ${agreementDateDisplay}`, pageWidth / 2, yPos, {
+      align: "center",
+    });
+    yPos += 6;
+
+    if (caseId) {
+      pdf.text(`Case ID: ${caseId}`, pageWidth / 2, yPos, { align: "center" });
+      yPos += 6;
+    }
+
+    yPos += 10;
+
+    setSubHeaderFont();
+    yPos += addText(
+      "THIS ARBITRATION AGREEMENT",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 3;
+
+    setNormalFont();
+    yPos += addText(
+      '(Here in after referred to as the "Agreement") is made and entered into by and between:',
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 10;
+
+    const partyWidth = contentWidth / 2 - 5;
+    const party1X = margin;
+    let party1Y = yPos;
+
+    setSubHeaderFont();
+    party1Y += addText(
+      "Party 1 – Claimant(s)/Plaintiff(s)",
+      party1X,
+      party1Y,
+      partyWidth,
+      "left",
+      5,
+    );
+    party1Y += 5;
+
+    setNormalFont();
+    formData.plaintiffs.forEach((plaintiff, index) => {
+      checkPageBreak(35);
+      party1Y += addText(
+        `Plaintiff-${index + 1}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += addText(
+        ` Name: ${plaintiff.name || "N/A"}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += addText(
+        ` Parent: ${plaintiff.parentsName || "N/A"}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += addText(
+        ` Email: ${plaintiff.email || "N/A"}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += addText(
+        ` Phone: ${plaintiff.phone || "N/A"}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += addText(
+        ` Address: ${plaintiff.address || "N/A"}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += addText(
+        ` Occupation: ${plaintiff.occupation || "N/A"}`,
+        party1X,
+        party1Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party1Y += 5;
+    });
+
+    party1Y += addText(
+      "(Here in after referred to as the First Party)",
+      party1X,
+      party1Y,
+      partyWidth,
+      "left",
+      5,
+    );
+
+    const party2X = margin + partyWidth + 10;
+    let party2Y = yPos;
+
+    setSubHeaderFont();
+    party2Y += addText(
+      "Party 2 – Respondent(s)/Defendant(s)",
+      party2X,
+      party2Y,
+      partyWidth,
+      "left",
+      5,
+    );
+    party2Y += 5;
+
+    setNormalFont();
+    formData.defendants.forEach((defendant, index) => {
+      checkPageBreak(35);
+      party2Y += addText(
+        `Defendant-${index + 1}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += addText(
+        ` Name: ${defendant.name || "N/A"}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += addText(
+        ` Parent: ${defendant.parentsName || "N/A"}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += addText(
+        ` Email: ${defendant.email || "N/A"}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += addText(
+        ` Phone: ${defendant.phone || "N/A"}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += addText(
+        ` Address: ${defendant.address || "N/A"}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += addText(
+        ` Occupation: ${defendant.occupation || "N/A"}`,
+        party2X,
+        party2Y,
+        partyWidth,
+        "left",
+        4,
+      );
+      party2Y += 5;
+    });
+
+    party2Y += addText(
+      "(Here in after referred to as the Second Party)",
+      party2X,
+      party2Y,
+      partyWidth,
+      "left",
+      5,
+    );
+
+    yPos = Math.max(party1Y, party2Y) + 10;
+
+    checkPageBreak();
+    yPos += addText(
+      "Collectively referred to as the Parties, and individually as a Party.",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText("WHEREAS:", margin, yPos, contentWidth, "left", 5);
+    yPos += 5;
+
+    setNormalFont();
+    const whereasPoints = [
+      `1. The Parties are involved in a legal dispute arising out of ${formData.disputeNature || "N/A"} ("Dispute");`,
+      `2. The Parties have mutually agreed to refer the said Dispute to arbitration, to be conducted through the JustiFi – Online Legal Aid & Arbitration Platform, under its established rules and procedures;`,
+      `3. The Parties desire to record their mutual understanding and agreement to the terms, conditions, and procedures governing such arbitration.`,
+    ];
+
+    whereasPoints.forEach((point) => {
+      checkPageBreak(10);
+      yPos += addText(point, margin, yPos, contentWidth, "left", 4);
+      yPos += 2;
+    });
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "1. Arbitration Reference",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    const section1Points = [
+      "1.1 The Parties voluntarily and irrevocably agree to submit the Dispute to arbitration in accordance with the provisions of the Arbitration Act, 2001 (Bangladesh).",
+      "1.2 The arbitration proceedings shall be conducted primarily through Online Dispute Resolution (ODR) using the JustiFi Platform.",
+      "1.3 In exceptional cases, where physical/offline hearings are deemed necessary, the Arbitrator(s) may order the same. All associated costs shall be borne equally (50%-50%) by both Parties.",
+    ];
+
+    section1Points.forEach((point) => {
+      checkPageBreak(10);
+      yPos += addText(point, margin, yPos, contentWidth, "left", 4);
+      yPos += 2;
+    });
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "2. Constitution of the Arbitral Tribunal",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    yPos += addText(
+      "2.1 Number of Arbitrators: Three (3)",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 4;
+
+    const arbitrators = [
+      `• Arbitrator 1: ${getArbitratorName(formData.arbitrator1)}`,
+      `• Arbitrator 2: ${getArbitratorName(formData.arbitrator2)}`,
+      `• Arbitrator 3 (Presiding Arbitrator): ${getArbitratorName(formData.presidingArbitrator)}`,
+    ];
+
+    arbitrators.forEach((arbitrator) => {
+      yPos += addText(
+        arbitrator,
+        margin + 5,
+        yPos,
+        contentWidth - 5,
+        "left",
+        4,
+      );
+    });
+
+    yPos += 4;
+    yPos += addText(
+      "2.2 The Arbitrators shall be neutral and independent, in accordance with Section 12 of the Arbitration Act, 2001, and their decision shall be final and binding upon the Parties.",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "3. Seat, Venue & Language",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    [
+      "3.1 Seat of Arbitration: Dhaka, Bangladesh (unless otherwise mutually agreed).",
+      "3.2 Mode: Online (virtual hearings) via the JustiFi ODR System.",
+      "3.3 Language: English and/or Bangla, as agreed between the Parties.",
+    ].forEach((point) => {
+      checkPageBreak(10);
+      yPos += addText(point, margin, yPos, contentWidth, "left", 4);
+      yPos += 2;
+    });
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "4. Suit Value, Costs & Fees",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    [
+      `4.1 Suit Value (Dispute Amount): BDT ${formData.suitValue || "N/A"}`,
+      `4.2 Number of Sittings (Initially Agreed): ${formData.sittings || "N/A"}`,
+      `4.3 Total Arbitration Cost (Administrative + Arbitrator Fees): BDT ${formData.totalCost || "N/A"}`,
+      "4.4 All costs of arbitration shall be shared equally between the Parties.",
+      "4.5 If additional sittings are deemed necessary for fair adjudication, the Arbitrator(s) may extend proceedings, and any additional costs shall also be borne equally by both Parties.",
+      "4.6 Each Party shall individually bear the cost of its own lawyers, representatives, advisors, or personal expenses.",
+    ].forEach((point) => {
+      checkPageBreak(10);
+      yPos += addText(point, margin, yPos, contentWidth, "left", 4);
+      yPos += 2;
+    });
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "5. Premature Termination / Withdrawal",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    yPos += addText(
+      "5.1 Should either Party withdraw or terminate participation before conclusion:",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 4;
+    [
+      "• That Party must pay all costs incurred up to the date of termination; and",
+      "• An additional lump-sum penalty as determined by the Arbitrator(s) or JustiFi to cover administrative expenses.",
+    ].forEach((point) => {
+      yPos += addText(point, margin + 5, yPos, contentWidth - 5, "left", 4);
+    });
+    yPos += 4;
+    yPos += addText(
+      "5.2 The arbitration may continue ex parte if one Party fails to participate, at the discretion of the Arbitrator(s).",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "6. Conduct & Confidentiality",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    [
+      "6.1 Both Parties shall maintain professional conduct and respect toward the Arbitrator(s) and the JustiFi platform.",
+      "6.2 Any form of abuse, misconduct, or defamatory act towards the Tribunal or platform shall constitute a breach of this Agreement.",
+      "6.3 All proceedings, documents, evidence, and awards shall remain strictly confidential.",
+      "6.4 No Party shall disclose or publish any part of the arbitration process unless required by law or upon written consent of the other Party.",
+    ].forEach((point) => {
+      checkPageBreak(10);
+      yPos += addText(point, margin, yPos, contentWidth, "left", 4);
+      yPos += 2;
+    });
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "7. Powers & Duties of Arbitrators",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    yPos += addText(
+      "The Arbitrator(s) shall have the power to:",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 4;
+    [
+      "• Decide all procedural and evidentiary matters;",
+      "• Request additional hearings, documents, or witnesses;",
+      "• Extend the number of sittings as necessary;",
+      "• Prohibit any unilateral or ex parte communications;",
+      "• Interpret contractual obligations to reach a fair and lawful resolution.",
+    ].forEach((power) => {
+      yPos += addText(power, margin + 5, yPos, contentWidth - 5, "left", 4);
+    });
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "8. Applicable Law & Jurisdiction",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    yPos += addText(
+      "This Agreement and all arbitration proceedings shall be governed by:",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 4;
+    [
+      "• The Arbitration Act, 2001 (Bangladesh); and",
+      "• The laws of the People's Republic of Bangladesh.",
+    ].forEach((point) => {
+      yPos += addText(point, margin + 5, yPos, contentWidth - 5, "left", 4);
+    });
+    yPos += 4;
+    yPos += addText(
+      "Courts situated in Dhaka, Bangladesh shall have exclusive jurisdiction for enforcement, setting aside, or any judicial assistance concerning the arbitral award.",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 10;
+
+    checkPageBreak();
+    setSubHeaderFont();
+    yPos += addText(
+      "9. Binding Nature of Award",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 5;
+
+    setNormalFont();
+    yPos += addText(
+      "The Award rendered by the Arbitral Tribunal shall be:",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      4,
+    );
+    yPos += 4;
+    [
+      "• Final and binding upon both Parties, under Section 44 of the Arbitration Act, 2001;",
+      "• Enforceable as a decree or court order within Bangladesh; and",
+      `• Obligatory to be complied with within ${formData.complianceDays || "N/A"} days from the date of issuance.`,
+    ].forEach((point) => {
+      yPos += addText(point, margin + 5, yPos, contentWidth - 5, "left", 4);
+    });
+    yPos += 15;
+
+    checkPageBreak(80);
+    setSubHeaderFont();
+    pdf.text("EXECUTION & SIGNATURES", pageWidth / 2, yPos, {
+      align: "center",
+    });
+    yPos += 8;
+
+    setNormalFont();
+    const witnessText =
+      "IN WITNESS WHEREOF, the Parties have executed this Arbitration Agreement on the date first written above.";
+    const witnessLines = pdf.splitTextToSize(witnessText, contentWidth);
+    pdf.text(witnessLines, pageWidth / 2, yPos, { align: "center" });
+    yPos += witnessLines.length * 5 + 10;
+
+    const signatureSectionWidth = contentWidth / 3;
+    const signatureStartY = yPos;
+
+    setSubHeaderFont();
+    pdf.text(
+      "Party 1 (First Party)",
+      margin + signatureSectionWidth / 2,
+      signatureStartY,
+      { align: "center" },
+    );
+    setNormalFont();
+    pdf.text(
+      "Plaintiffs/Claimants",
+      margin + signatureSectionWidth / 2,
+      signatureStartY + 6,
+      { align: "center" },
+    );
+
+    let currentSigY = signatureStartY + 15;
+    formData.plaintiffs.forEach((plaintiff, index) => {
+      checkPageBreak(25);
+      pdf.text(
+        `Plaintiff-${index + 1}: ${plaintiff.name || "N/A"}`,
+        margin + signatureSectionWidth / 2,
+        currentSigY,
+        { align: "center" },
+      );
+      pdf.line(
+        margin + 10,
+        currentSigY + 8,
+        margin + signatureSectionWidth - 10,
+        currentSigY + 8,
+      );
+      currentSigY += 15;
+    });
+
+    setSubHeaderFont();
+    pdf.text(
+      "Party 2 (Second Party)",
+      margin + signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY,
+      { align: "center" },
+    );
+    setNormalFont();
+    pdf.text(
+      "Defendants/Respondents",
+      margin + signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY + 6,
+      { align: "center" },
+    );
+
+    let currentSigY2 = signatureStartY + 15;
+    formData.defendants.forEach((defendant, index) => {
+      checkPageBreak(25);
+      pdf.text(
+        `Defendant-${index + 1}: ${defendant.name || "N/A"}`,
+        margin + signatureSectionWidth + signatureSectionWidth / 2,
+        currentSigY2,
+        { align: "center" },
+      );
+      pdf.line(
+        margin + signatureSectionWidth + 10,
+        currentSigY2 + 8,
+        margin + 2 * signatureSectionWidth - 10,
+        currentSigY2 + 8,
+      );
+      currentSigY2 += 15;
+    });
+
+    setSubHeaderFont();
+    pdf.text(
+      "On behalf of JustiFi",
+      margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY,
+      { align: "center" },
+    );
+    setNormalFont();
+    pdf.text(
+      "(Witness & Record Keeper)",
+      margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY + 6,
+      { align: "center" },
+    );
+    pdf.text(
+      `Name: ${getJustifiName()}`,
+      margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY + 15,
+      { align: "center" },
+    );
+    pdf.text(
+      `Designation: ${getJustifiDesignation()}`,
+      margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY + 22,
+      { align: "center" },
+    );
+    pdf.line(
+      margin + 2 * signatureSectionWidth + 10,
+      signatureStartY + 30,
+      margin + 3 * signatureSectionWidth - 10,
+      signatureStartY + 30,
+    );
+    pdf.text(
+      `Date: ${agreementDateDisplay}`,
+      margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
+      signatureStartY + 37,
+      { align: "center" },
+    );
+
+    yPos = Math.max(currentSigY, currentSigY2, signatureStartY + 45) + 20;
+
+    checkPageBreak(50);
+    setSubHeaderFont();
+    yPos += addText(
+      "Legal References Incorporated",
+      margin,
+      yPos,
+      contentWidth,
+      "left",
+      5,
+    );
+    yPos += 8;
+
+    const tableTop = yPos;
+    const col1Width = 20;
+    const col2Width = 50;
+    const col3Width = contentWidth - col1Width - col2Width - 5;
+
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(margin, tableTop, contentWidth, 8, "F");
+
+    setSubHeaderFont();
+    pdf.setFontSize(9);
+    pdf.text("Clause", margin + col1Width / 2, tableTop + 5, {
+      align: "center",
+    });
+    pdf.text("Reference", margin + col1Width + col2Width / 2, tableTop + 5, {
+      align: "center",
+    });
+    pdf.text(
+      "Purpose",
+      margin + col1Width + col2Width + col3Width / 2,
+      tableTop + 5,
+      { align: "center" },
+    );
+
+    yPos = tableTop + 8;
+
+    const references = [
+      {
+        clause: "1, 2, 8, 9",
+        reference: "Arbitration Act, 2001 (Bangladesh)",
+        purpose:
+          "Legal foundation for arbitration procedure, award, and enforcement",
+      },
+      {
+        clause: "2.2",
+        reference: "Section 12, Arbitration Act 2001",
+        purpose: "Independence and neutrality of arbitrators",
+      },
+      {
+        clause: "9",
+        reference: "Section 44, Arbitration Act 2001",
+        purpose: "Binding nature and enforcement of award",
+      },
+      {
+        clause: "8",
+        reference: "Civil Procedure Code (CPC), Bangladesh",
+        purpose: "Court jurisdiction for award enforcement",
+      },
+      {
+        clause: "General",
+        reference: "JustiFi ODR Rules",
+        purpose: "Platform's procedural framework",
+      },
+    ];
+
+    setSmallFont();
+    references.forEach((ref, index) => {
+      checkPageBreak(15);
+
+      if (index % 2 === 0) {
+        pdf.setFillColor(250, 250, 250);
+      } else {
+        pdf.setFillColor(255, 255, 255);
+      }
+      pdf.rect(margin, yPos, contentWidth, 12, "F");
+
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, yPos, margin + contentWidth, yPos);
+      pdf.line(margin, yPos + 12, margin + contentWidth, yPos + 12);
+      pdf.line(margin, yPos, margin, yPos + 12);
+      pdf.line(margin + col1Width, yPos, margin + col1Width, yPos + 12);
+      pdf.line(
+        margin + col1Width + col2Width,
+        yPos,
+        margin + col1Width + col2Width,
+        yPos + 12,
+      );
+      pdf.line(margin + contentWidth, yPos, margin + contentWidth, yPos + 12);
+
+      const clauseLines = pdf.splitTextToSize(ref.clause, col1Width - 4);
+      const referenceLines = pdf.splitTextToSize(ref.reference, col2Width - 4);
+      const purposeLines = pdf.splitTextToSize(ref.purpose, col3Width - 4);
+
+      const maxLines = Math.max(
+        clauseLines.length,
+        referenceLines.length,
+        purposeLines.length,
+      );
+      const rowHeight = Math.max(12, maxLines * 4);
+      const textY = yPos + rowHeight / 2 - maxLines * 2 + 2;
+
+      clauseLines.forEach((line, lineIndex) => {
+        pdf.text(line, margin + col1Width / 2, textY + lineIndex * 4, {
+          align: "center",
+        });
+      });
+      referenceLines.forEach((line, lineIndex) => {
+        pdf.text(line, margin + col1Width + 2, textY + lineIndex * 4, {
+          align: "left",
+        });
+      });
+      purposeLines.forEach((line, lineIndex) => {
+        pdf.text(
+          line,
+          margin + col1Width + col2Width + 2,
+          textY + lineIndex * 4,
+          { align: "left" },
+        );
+      });
+
+      yPos += rowHeight;
+    });
+
+    yPos += 15;
+
+    checkPageBreak();
+    setNormalFont();
+    pdf.text(
+      "JustiFi - Fair Dispute Resolution Through Equal Partnership",
+      pageWidth / 2,
+      yPos,
+      { align: "center" },
+    );
+    yPos += 6;
+    pdf.text(
+      "This document constitutes a legally binding agreement between all signing parties.",
+      pageWidth / 2,
+      yPos,
+      { align: "center" },
+    );
+
+    // Return blob instead of saving
+    return pdf.output("blob");
+  };
+
+  // Submit the agreement to the backend
+  const handleSubmitAgreement = async () => {
     if (!formData) {
       alert("No form data available");
       return;
     }
 
-    setIsGeneratingPDF(true);
+    setIsSubmitting(true);
 
     try {
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - 2 * margin;
-
-      let yPos = margin;
-
-      // Set font styles
-      const setHeaderFont = () => {
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(18);
-      };
-
-      const setSubHeaderFont = () => {
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(12);
-      };
-
-      const setNormalFont = () => {
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(10);
-      };
-
-      const setSmallFont = () => {
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(9);
-      };
-
-      const checkPageBreak = (requiredSpace = 25) => {
-        if (yPos > pageHeight - requiredSpace) {
-          pdf.addPage();
-          yPos = margin;
-          return true;
-        }
-        return false;
-      };
-
-      const addText = (
-        text,
-        x = margin,
-        customYPos = null,
-        maxWidth = contentWidth,
-        align = "left",
-        lineHeight = 5
-      ) => {
-        const currentY = customYPos !== null ? customYPos : yPos;
-        const lines = pdf.splitTextToSize(text, maxWidth);
-        pdf.text(lines, x, currentY, { align });
-        return lines.length * lineHeight;
-      };
-
-      // Title Section - Fixed center alignment
-      setHeaderFont();
-      pdf.text("ARBITRATION AGREEMENT", pageWidth / 2, yPos, {
-        align: "center",
-      });
-      yPos += 8;
-
-      setNormalFont();
-      const agreementDateDisplay = formatDateForDisplay(formData.agreementDate);
-      pdf.text(`Date: ${agreementDateDisplay}`, pageWidth / 2, yPos, {
-        align: "center",
-      });
-      yPos += 6;
-
-      if (caseId) {
-        pdf.text(`Case ID: ${caseId}`, pageWidth / 2, yPos, {
-          align: "center",
-        });
-        yPos += 6;
-      }
-
-      yPos += 10;
-
-      // THIS ARBITRATION AGREEMENT Section
-      setSubHeaderFont();
-      yPos += addText(
-        "THIS ARBITRATION AGREEMENT",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 3;
-
-      setNormalFont();
-      yPos += addText(
-        '(Here in after referred to as the "Agreement") is made and entered into by and between:',
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 10;
-
-      // Parties Information - Side by side layout
-      const partyWidth = contentWidth / 2 - 5;
-
-      // Party 1 - Plaintiffs
-      const party1X = margin;
-      let party1Y = yPos;
-
-      setSubHeaderFont();
-      party1Y += addText(
-        "Party 1 – Claimant(s)/Plaintiff(s)",
-        party1X,
-        party1Y,
-        partyWidth,
-        "left",
-        5
-      );
-      party1Y += 5;
-
-      setNormalFont();
-      formData.plaintiffs.forEach((plaintiff, index) => {
-        checkPageBreak(35);
-
-        // Plaintiff number
-        party1Y += addText(
-          `Plaintiff-${index + 1}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-
-        // Plaintiff details with proper indentation
-        party1Y += addText(
-          ` Name: ${plaintiff.name || "N/A"}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party1Y += addText(
-          ` Parent: ${plaintiff.parentsName || "N/A"}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party1Y += addText(
-          ` Email: ${plaintiff.email || "N/A"}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party1Y += addText(
-          ` Phone: ${plaintiff.phone || "N/A"}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party1Y += addText(
-          ` Address: ${plaintiff.address || "N/A"}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party1Y += addText(
-          ` Occupation: ${plaintiff.occupation || "N/A"}`,
-          party1X,
-          party1Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party1Y += 5; // Extra space between plaintiffs
-      });
-
-      party1Y += addText(
-        "(Here in after referred to as the First Party)",
-        party1X,
-        party1Y,
-        partyWidth,
-        "left",
-        5
-      );
-
-      // Party 2 - Defendants
-      const party2X = margin + partyWidth + 10;
-      let party2Y = yPos;
-
-      setSubHeaderFont();
-      party2Y += addText(
-        "Party 2 – Respondent(s)/Defendant(s)",
-        party2X,
-        party2Y,
-        partyWidth,
-        "left",
-        5
-      );
-      party2Y += 5;
-
-      setNormalFont();
-      formData.defendants.forEach((defendant, index) => {
-        checkPageBreak(35);
-
-        // Defendant number
-        party2Y += addText(
-          `Defendant-${index + 1}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-
-        // Defendant details with proper indentation
-        party2Y += addText(
-          ` Name: ${defendant.name || "N/A"}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party2Y += addText(
-          ` Parent: ${defendant.parentsName || "N/A"}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party2Y += addText(
-          ` Email: ${defendant.email || "N/A"}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party2Y += addText(
-          ` Phone: ${defendant.phone || "N/A"}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party2Y += addText(
-          ` Address: ${defendant.address || "N/A"}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party2Y += addText(
-          ` Occupation: ${defendant.occupation || "N/A"}`,
-          party2X,
-          party2Y,
-          partyWidth,
-          "left",
-          4
-        );
-        party2Y += 5; // Extra space between defendants
-      });
-
-      party2Y += addText(
-        "(Here in after referred to as the Second Party)",
-        party2X,
-        party2Y,
-        partyWidth,
-        "left",
-        5
-      );
-
-      // Use the maximum Y position from both parties
-      yPos = Math.max(party1Y, party2Y) + 10;
-
-      checkPageBreak();
-      yPos += addText(
-        "Collectively referred to as the Parties, and individually as a Party.",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 10;
-
-      // WHEREAS Section
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText("WHEREAS:", margin, yPos, contentWidth, "left", 5);
-      yPos += 5;
-
-      setNormalFont();
-      const whereasPoints = [
-        `1. The Parties are involved in a legal dispute arising out of ${
-          formData.disputeNature || "N/A"
-        } ("Dispute");`,
-        `2. The Parties have mutually agreed to refer the said Dispute to arbitration, to be conducted through the JustiFi – Online Legal Aid & Arbitration Platform, under its established rules and procedures;`,
-        `3. The Parties desire to record their mutual understanding and agreement to the terms, conditions, and procedures governing such arbitration.`,
-      ];
-
-      whereasPoints.forEach((point) => {
-        checkPageBreak(10);
-        yPos += addText(point, margin, yPos, contentWidth, "left", 4);
-        yPos += 2;
-      });
-
-      yPos += 10;
-
-      // Section 1: Arbitration Reference
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "1. Arbitration Reference",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      const section1Points = [
-        "1.1 The Parties voluntarily and irrevocably agree to submit the Dispute to arbitration in accordance with the provisions of the Arbitration Act, 2001 (Bangladesh).",
-        "1.2 The arbitration proceedings shall be conducted primarily through Online Dispute Resolution (ODR) using the JustiFi Platform.",
-        "1.3 In exceptional cases, where physical/offline hearings are deemed necessary, the Arbitrator(s) may order the same. All associated costs shall be borne equally (50%-50%) by both Parties.",
-      ];
-
-      section1Points.forEach((point) => {
-        checkPageBreak(10);
-        yPos += addText(point, margin, yPos, contentWidth, "left", 4);
-        yPos += 2;
-      });
-
-      yPos += 10;
-
-      // Section 2: Constitution of the Arbitral Tribunal
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "2. Constitution of the Arbitral Tribunal",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      yPos += addText(
-        "2.1 Number of Arbitrators: Three (3)",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 4;
-
-      const arbitrators = [
-        `• Arbitrator 1: ${getArbitratorName(formData.arbitrator1)}`,
-        `• Arbitrator 2: ${getArbitratorName(formData.arbitrator2)}`,
-        `• Arbitrator 3 (Presiding Arbitrator): ${getArbitratorName(
-          formData.presidingArbitrator
-        )}`,
-      ];
-
-      arbitrators.forEach((arbitrator) => {
-        yPos += addText(
-          arbitrator,
-          margin + 5,
-          yPos,
-          contentWidth - 5,
-          "left",
-          4
-        );
-      });
-
-      yPos += 4;
-      yPos += addText(
-        "2.2 The Arbitrators shall be neutral and independent, in accordance with Section 12 of the Arbitration Act, 2001, and their decision shall be final and binding upon the Parties.",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 10;
-
-      // Section 3: Seat, Venue & Language
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "3. Seat, Venue & Language",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      const section3Points = [
-        "3.1 Seat of Arbitration: Dhaka, Bangladesh (unless otherwise mutually agreed).",
-        "3.2 Mode: Online (virtual hearings) via the JustiFi ODR System.",
-        "3.3 Language: English and/or Bangla, as agreed between the Parties.",
-      ];
-
-      section3Points.forEach((point) => {
-        checkPageBreak(10);
-        yPos += addText(point, margin, yPos, contentWidth, "left", 4);
-        yPos += 2;
-      });
-
-      yPos += 10;
-
-      // Section 4: Suit Value, Costs & Fees
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "4. Suit Value, Costs & Fees",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      const section4Points = [
-        `4.1 Suit Value (Dispute Amount): BDT ${formData.suitValue || "N/A"}`,
-        `4.2 Number of Sittings (Initially Agreed): ${
-          formData.sittings || "N/A"
-        }`,
-        `4.3 Total Arbitration Cost (Administrative + Arbitrator Fees): BDT ${
-          formData.totalCost || "N/A"
-        }`,
-        "4.4 All costs of arbitration shall be shared equally between the Parties.",
-        "4.5 If additional sittings are deemed necessary for fair adjudication, the Arbitrator(s) may extend proceedings, and any additional costs shall also be borne equally by both Parties.",
-        "4.6 Each Party shall individually bear the cost of its own lawyers, representatives, advisors, or personal expenses.",
-      ];
-
-      section4Points.forEach((point) => {
-        checkPageBreak(10);
-        yPos += addText(point, margin, yPos, contentWidth, "left", 4);
-        yPos += 2;
-      });
-
-      yPos += 10;
-
-      // Section 5: Premature Termination / Withdrawal
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "5. Premature Termination / Withdrawal",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      yPos += addText(
-        "5.1 Should either Party withdraw or terminate participation before conclusion:",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 4;
-
-      const terminationPoints = [
-        "• That Party must pay all costs incurred up to the date of termination; and",
-        "• An additional lump-sum penalty as determined by the Arbitrator(s) or JustiFi to cover administrative expenses.",
-      ];
-
-      terminationPoints.forEach((point) => {
-        yPos += addText(point, margin + 5, yPos, contentWidth - 5, "left", 4);
-      });
-
-      yPos += 4;
-      yPos += addText(
-        "5.2 The arbitration may continue ex parte if one Party fails to participate, at the discretion of the Arbitrator(s).",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 10;
-
-      // Section 6: Conduct & Confidentiality
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "6. Conduct & Confidentiality",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      const section6Points = [
-        "6.1 Both Parties shall maintain professional conduct and respect toward the Arbitrator(s) and the JustiFi platform.",
-        "6.2 Any form of abuse, misconduct, or defamatory act towards the Tribunal or platform shall constitute a breach of this Agreement.",
-        "6.3 All proceedings, documents, evidence, and awards shall remain strictly confidential.",
-        "6.4 No Party shall disclose or publish any part of the arbitration process unless required by law or upon written consent of the other Party.",
-      ];
-
-      section6Points.forEach((point) => {
-        checkPageBreak(10);
-        yPos += addText(point, margin, yPos, contentWidth, "left", 4);
-        yPos += 2;
-      });
-
-      yPos += 10;
-
-      // Section 7: Powers & Duties of Arbitrators
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "7. Powers & Duties of Arbitrators",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      yPos += addText(
-        "The Arbitrator(s) shall have the power to:",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 4;
-
-      const powers = [
-        "• Decide all procedural and evidentiary matters;",
-        "• Request additional hearings, documents, or witnesses;",
-        "• Extend the number of sittings as necessary;",
-        "• Prohibit any unilateral or ex parte communications;",
-        "• Interpret contractual obligations to reach a fair and lawful resolution.",
-      ];
-
-      powers.forEach((power) => {
-        yPos += addText(power, margin + 5, yPos, contentWidth - 5, "left", 4);
-      });
-
-      yPos += 10;
-
-      // Section 8: Applicable Law & Jurisdiction
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "8. Applicable Law & Jurisdiction",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      yPos += addText(
-        "This Agreement and all arbitration proceedings shall be governed by:",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 4;
-
-      const lawPoints = [
-        "• The Arbitration Act, 2001 (Bangladesh); and",
-        "• The laws of the People's Republic of Bangladesh.",
-      ];
-
-      lawPoints.forEach((point) => {
-        yPos += addText(point, margin + 5, yPos, contentWidth - 5, "left", 4);
-      });
-
-      yPos += 4;
-      yPos += addText(
-        "Courts situated in Dhaka, Bangladesh shall have exclusive jurisdiction for enforcement, setting aside, or any judicial assistance concerning the arbitral award.",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 10;
-
-      // Section 9: Binding Nature of Award
-      checkPageBreak();
-      setSubHeaderFont();
-      yPos += addText(
-        "9. Binding Nature of Award",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 5;
-
-      setNormalFont();
-      yPos += addText(
-        "The Award rendered by the Arbitral Tribunal shall be:",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        4
-      );
-      yPos += 4;
-
-      const awardPoints = [
-        "• Final and binding upon both Parties, under Section 44 of the Arbitration Act, 2001;",
-        "• Enforceable as a decree or court order within Bangladesh; and",
-        `• Obligatory to be complied with within ${
-          formData.complianceDays || "N/A"
-        } days from the date of issuance.`,
-      ];
-
-      awardPoints.forEach((point) => {
-        yPos += addText(point, margin + 5, yPos, contentWidth - 5, "left", 4);
-      });
-
-      yPos += 15;
-
-      // EXECUTION & SIGNATURES Section - Fixed alignment
-      checkPageBreak(80);
-      setSubHeaderFont();
-      pdf.text("EXECUTION & SIGNATURES", pageWidth / 2, yPos, {
-        align: "center",
-      });
-      yPos += 8;
-
-      setNormalFont();
-      const witnessText =
-        "IN WITNESS WHEREOF, the Parties have executed this Arbitration Agreement on the date first written above.";
-      const witnessLines = pdf.splitTextToSize(witnessText, contentWidth);
-      pdf.text(witnessLines, pageWidth / 2, yPos, { align: "center" });
-      yPos += witnessLines.length * 5 + 10;
-
-      // Signatures Table - Fixed alignment
-      const signatureSectionWidth = contentWidth / 3;
-      const signatureStartY = yPos;
-
-      // Party 1 Signatures
-      setSubHeaderFont();
-      pdf.text(
-        "Party 1 (First Party)",
-        margin + signatureSectionWidth / 2,
-        signatureStartY,
-        { align: "center" }
-      );
-      setNormalFont();
-      pdf.text(
-        "Plaintiffs/Claimants",
-        margin + signatureSectionWidth / 2,
-        signatureStartY + 6,
-        { align: "center" }
-      );
-
-      let currentSigY = signatureStartY + 15;
-      formData.plaintiffs.forEach((plaintiff, index) => {
-        checkPageBreak(25);
-        pdf.text(
-          `Plaintiff-${index + 1}: ${plaintiff.name || "N/A"}`,
-          margin + signatureSectionWidth / 2,
-          currentSigY,
-          { align: "center" }
-        );
-        // Signature line
-        pdf.line(
-          margin + 10,
-          currentSigY + 8,
-          margin + signatureSectionWidth - 10,
-          currentSigY + 8
-        );
-        currentSigY += 15;
-      });
-
-      // Party 2 Signatures
-      setSubHeaderFont();
-      pdf.text(
-        "Party 2 (Second Party)",
-        margin + signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY,
-        { align: "center" }
-      );
-      setNormalFont();
-      pdf.text(
-        "Defendants/Respondents",
-        margin + signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY + 6,
-        { align: "center" }
-      );
-
-      let currentSigY2 = signatureStartY + 15;
-      formData.defendants.forEach((defendant, index) => {
-        checkPageBreak(25);
-        pdf.text(
-          `Defendant-${index + 1}: ${defendant.name || "N/A"}`,
-          margin + signatureSectionWidth + signatureSectionWidth / 2,
-          currentSigY2,
-          { align: "center" }
-        );
-        // Signature line
-        pdf.line(
-          margin + signatureSectionWidth + 10,
-          currentSigY2 + 8,
-          margin + 2 * signatureSectionWidth - 10,
-          currentSigY2 + 8
-        );
-        currentSigY2 += 15;
-      });
-
-      // JustiFi Signature
-      setSubHeaderFont();
-      pdf.text(
-        "On behalf of JustiFi",
-        margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY,
-        { align: "center" }
-      );
-      setNormalFont();
-      pdf.text(
-        "(Witness & Record Keeper)",
-        margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY + 6,
-        { align: "center" }
-      );
-      pdf.text(
-        `Name: ${getJustifiName()}`,
-        margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY + 15,
-        { align: "center" }
-      );
-      pdf.text(
-        `Designation: ${getJustifiDesignation()}`,
-        margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY + 22,
-        { align: "center" }
-      );
-      // Signature line
-      pdf.line(
-        margin + 2 * signatureSectionWidth + 10,
-        signatureStartY + 30,
-        margin + 3 * signatureSectionWidth - 10,
-        signatureStartY + 30
-      );
-      pdf.text(
-        `Date: ${agreementDateDisplay}`,
-        margin + 2 * signatureSectionWidth + signatureSectionWidth / 2,
-        signatureStartY + 37,
-        { align: "center" }
-      );
-
-      yPos = Math.max(currentSigY, currentSigY2, signatureStartY + 45) + 20;
-
-      // Legal References Table - Fixed alignment
-      checkPageBreak(50);
-      setSubHeaderFont();
-      yPos += addText(
-        "Legal References Incorporated",
-        margin,
-        yPos,
-        contentWidth,
-        "left",
-        5
-      );
-      yPos += 8;
-
-      // Create table for legal references with proper formatting
-      const tableTop = yPos;
-      const col1Width = 20;
-      const col2Width = 50;
-      const col3Width = contentWidth - col1Width - col2Width - 5;
-
-      // Table headers with background and proper alignment
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(margin, tableTop, contentWidth, 8, "F");
-
-      setSubHeaderFont();
-      pdf.setFontSize(9);
-      pdf.text("Clause", margin + col1Width / 2, tableTop + 5, {
-        align: "center",
-      });
-      pdf.text("Reference", margin + col1Width + col2Width / 2, tableTop + 5, {
-        align: "center",
-      });
-      pdf.text(
-        "Purpose",
-        margin + col1Width + col2Width + col3Width / 2,
-        tableTop + 5,
-        { align: "center" }
-      );
-
-      yPos = tableTop + 8;
-
-      const references = [
-        {
-          clause: "1, 2, 8, 9",
-          reference: "Arbitration Act, 2001 (Bangladesh)",
-          purpose:
-            "Legal foundation for arbitration procedure, award, and enforcement",
-        },
-        {
-          clause: "2.2",
-          reference: "Section 12, Arbitration Act 2001",
-          purpose: "Independence and neutrality of arbitrators",
-        },
-        {
-          clause: "9",
-          reference: "Section 44, Arbitration Act 2001",
-          purpose: "Binding nature and enforcement of award",
-        },
-        {
-          clause: "8",
-          reference: "Civil Procedure Code (CPC), Bangladesh",
-          purpose: "Court jurisdiction for award enforcement",
-        },
-        {
-          clause: "General",
-          reference: "JustiFi ODR Rules",
-          purpose: "Platform's procedural framework",
-        },
-      ];
-
-      setSmallFont();
-      references.forEach((ref, index) => {
-        checkPageBreak(15);
-
-        // Draw row background for better readability
-        if (index % 2 === 0) {
-          pdf.setFillColor(250, 250, 250);
-        } else {
-          pdf.setFillColor(255, 255, 255);
-        }
-        pdf.rect(margin, yPos, contentWidth, 12, "F");
-
-        // Draw borders
-        pdf.setDrawColor(200, 200, 200);
-        pdf.line(margin, yPos, margin + contentWidth, yPos);
-        pdf.line(margin, yPos + 12, margin + contentWidth, yPos + 12);
-        pdf.line(margin, yPos, margin, yPos + 12);
-        pdf.line(margin + col1Width, yPos, margin + col1Width, yPos + 12);
-        pdf.line(
-          margin + col1Width + col2Width,
-          yPos,
-          margin + col1Width + col2Width,
-          yPos + 12
-        );
-        pdf.line(margin + contentWidth, yPos, margin + contentWidth, yPos + 12);
-
-        // Add text content with proper alignment
-        const clauseLines = pdf.splitTextToSize(ref.clause, col1Width - 4);
-        const referenceLines = pdf.splitTextToSize(
-          ref.reference,
-          col2Width - 4
-        );
-        const purposeLines = pdf.splitTextToSize(ref.purpose, col3Width - 4);
-
-        const maxLines = Math.max(
-          clauseLines.length,
-          referenceLines.length,
-          purposeLines.length
-        );
-        const rowHeight = Math.max(12, maxLines * 4);
-
-        // Center text vertically in cells
-        const textY = yPos + rowHeight / 2 - maxLines * 2 + 2;
-
-        // Center align clause text
-        clauseLines.forEach((line, lineIndex) => {
-          pdf.text(line, margin + col1Width / 2, textY + lineIndex * 4, {
-            align: "center",
-          });
-        });
-
-        // Left align reference text
-        referenceLines.forEach((line, lineIndex) => {
-          pdf.text(line, margin + col1Width + 2, textY + lineIndex * 4, {
-            align: "left",
-          });
-        });
-
-        // Left align purpose text
-        purposeLines.forEach((line, lineIndex) => {
-          pdf.text(
-            line,
-            margin + col1Width + col2Width + 2,
-            textY + lineIndex * 4,
-            { align: "left" }
-          );
-        });
-
-        yPos += rowHeight;
-      });
-
-      yPos += 15;
-
-      // Footer
-      checkPageBreak();
-      setNormalFont();
-      pdf.text(
-        "JustiFi - Fair Dispute Resolution Through Equal Partnership",
-        pageWidth / 2,
-        yPos,
-        { align: "center" }
-      );
-      yPos += 6;
-      pdf.text(
-        "This document constitutes a legally binding agreement between all signing parties.",
-        pageWidth / 2,
-        yPos,
-        { align: "center" }
-      );
+      const pdfBlob = await buildPDFBlob();
 
       const fileName = caseId
         ? `arbitration-agreement-${caseId}.pdf`
-        : `arbitration-agreement-${new Date().getTime()}.pdf`;
+        : `arbitration-agreement-${Date.now()}.pdf`;
 
-      pdf.save(fileName);
+      const file = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+      const formPayload = new FormData();
+      formPayload.append("file", file, fileName);
+      formPayload.append("arbitrationId", caseId || "");
+      formPayload.append("caseId", caseId || "");
+      formPayload.append("role", "admin");
+
+      // axiosSecure likely sets Content-Type: application/json globally.
+      // We MUST remove it so axios auto-sets multipart/form-data with the
+      // correct boundary — without the boundary multer sees no file at all.
+      const response = await axiosSecure.post(
+        "/arbitrationFile/agreementStore",
+        formPayload,
+        {
+          transformRequest: (data, headers) => {
+            delete headers["Content-Type"];
+            if (headers.common) delete headers.common["Content-Type"];
+            if (headers.post) delete headers.post["Content-Type"];
+            return data;
+          },
+        },
+      );
+
+      if (response.status === 200) {
+        setShowSuccessModal(true);
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          navigate("/admin/arbitrations-management");
+        }, 2500);
+      }
     } catch (error) {
-      console.error("PDF generation error:", error);
-      alert("Error generating PDF. Please try again or contact support.");
+      console.error("Agreement submission error:", error);
+      alert(
+        error?.response?.data?.message ||
+          "Error submitting agreement. Please try again.",
+      );
     } finally {
-      setIsGeneratingPDF(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -1044,6 +1000,42 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
 
   return (
     <div id="output-section" className="bg-white rounded-lg shadow-md p-6">
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm w-full mx-4 animate-bounce-in">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <svg
+                className="w-10 h-10 text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800">
+              Agreement Submitted Successfully!
+            </h3>
+            <p className="text-gray-500 text-center text-sm">
+              Your arbitration agreement has been submitted. Redirecting to
+              agreement management...
+            </p>
+            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+              <div
+                className="bg-green-500 h-1.5 rounded-full"
+                style={{ animation: "progress 2.5s linear forwards" }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6 no-print">
         <h2 className="text-2xl font-bold">Generated Arbitration Agreement</h2>
         <button
@@ -1485,17 +1477,25 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
         </p>
       </div>
 
+      {/* Submit Agreement Button */}
       <div className="mt-4 flex justify-center no-print">
         <button
-          id="download-pdf"
-          onClick={generatePDF}
-          disabled={isGeneratingPDF}
-          className="bg-green-600 text-white px-6 py-3 rounded-md font-medium hover:bg-green-700 transition-colors flex items-center gap-2 disabled:bg-green-400 disabled:cursor-not-allowed"
+          onClick={handleSubmitAgreement}
+          disabled={isSubmitting}
+          className="bg-green-600 text-white px-8 py-3 rounded-md font-medium hover:bg-green-700 transition-colors flex items-center gap-3 disabled:bg-green-400 disabled:cursor-not-allowed shadow-md"
         >
-          <FaDownload />
-          {isGeneratingPDF ? "Generating PDF..." : "Download as PDF"}
+          <FaPaperPlane className={isSubmitting ? "animate-pulse" : ""} />
+          {isSubmitting ? "Submitting Agreement..." : "Submit Agreement"}
         </button>
       </div>
+
+      {/* Inline style for progress bar animation */}
+      <style>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   );
 };
