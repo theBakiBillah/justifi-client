@@ -3,6 +3,7 @@ import {
   FaBalanceScale,
   FaChevronLeft,
   FaChevronRight,
+  FaClock,
   FaDashcube,
   FaGavel,
   FaHandshake,
@@ -88,6 +89,11 @@ const DashboardLeft = () => {
       name: "Appointments",
       path: "/dashboard/appointments",
       icon: <FaGavel className="text-lg" />,
+    },
+    {
+      name: "Time Slots",
+      path: `/dashboard/my-time-slots/${currentUser?.email}`,
+      icon: <FaClock className="text-lg" />,
     },
     {
       name: "Arbitrations",
