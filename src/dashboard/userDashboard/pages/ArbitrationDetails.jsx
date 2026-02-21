@@ -184,8 +184,9 @@ const ArbitrationDetails = () => {
                             caseId={arbitration?._id || arbitration?.arbitrationId}
                             onUpdateArbitration={handleUpdateArbitration}
                         />
-                        <Arb_DocumentsSection />
+                        <Arb_DocumentsSection arbitrationId={ arbitration?.arbitrationId} email={currentUser?.email} />
                         <Arb_HearingSection 
+                            arbitrationId={ arbitration?.arbitrationId}
                             selectedHearing={selectedHearing}
                             onHearingSelect={setSelectedHearing}
                             onHearingClose={() => setSelectedHearing(null)}

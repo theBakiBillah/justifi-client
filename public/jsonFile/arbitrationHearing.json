@@ -1,0 +1,49 @@
+{
+    "_id": "6999ede2d7ae4d6ea76ea2f4",
+    "arbitrationId": "ARB-6996F-51084196",
+    "hearingId": "ARB-HER-1771695586861",
+    "hearingNumber": 4,
+    "date": "2026-02-27T05:43:00.000Z",
+    "duration": 189,
+    "meetLink": "https://meet.google.com/iqc-rquw-yne",
+    "hearingAgenda": "111www",
+    "recordingSummary": "",
+    "status": "scheduled",
+    "cancellationReason": "",
+    "createdBy": "arbitrator01@justifi.com",
+    "createdAt": "2026-02-21T17:39:46.861Z",
+    "updatedAt": "2026-02-21T17:39:46.861Z",
+    
+    "attendance": {
+        "arbitrator1": false,
+        "arbitrator2": false,
+        "presidingArbitrator": false,
+        "plaintiffs": [
+            {
+                "email": "mhasan221082@bscse.uiu.ac.bd",
+                "present": false
+            }
+        ],
+        "defendants": [
+            {
+                "email": "mehedi1013401@gmail.com",
+                "present": false
+            }
+        ]
+    },
+    
+    "arbitratorComments": {
+        "presidingarbitrator": [],
+        "arbitrator1": [],
+        "arbitrator2": []
+    },
+    
+    "privateNotes": [],
+    
+    "recording": {
+        "recorded": false,
+        "recordingUrl": "",
+        "duration": "",
+        "fileSize": ""
+    }
+}

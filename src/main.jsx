@@ -48,7 +48,7 @@ import AboutUs from "./pages/about/AboutUs";
 import LawyerArbitration from "./dashboard/lawyerDasgboard/pages/LawyerArbitration";
 import LawyerArbitrationDetails from "./dashboard/lawyerDasgboard/pages/LawyerArbitrationDetails";
 import ArbitratorProfile from "./dashboard/arbitratorDashboard/pages/ArbitratorProfile";
-
+import Arb_HearingDetails from "./dashboard/userDashboard/components/Arb_HearingDetails.jsx"
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")).render(
@@ -131,6 +131,11 @@ createRoot(document.getElementById("root")).render(
                             path="my-arbitrations/:id"
                             element={<ArbitrationDetails />}
                         />
+                        <Route
+                            path="arbitrator/arbitration/:arbitrationId/hearing/:hearingId"
+                            element={<Arb_HearingDetails/>}
+                        />
+
                         <Route
                             path="lawyer-arbitrations"
                             element={<LawyerArbitration />}

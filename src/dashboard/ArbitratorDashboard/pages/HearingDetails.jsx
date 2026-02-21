@@ -1,652 +1,805 @@
 import React, { useState } from 'react';
 import { 
-    FaArrowLeft, 
-    FaCalendarAlt, 
-    FaClock, 
-    FaVideo, 
-    FaUserTie, 
-    FaUserShield,
-    FaFileAlt,
-    FaEdit,
-    FaCheckCircle,
-    FaTimes,
-    FaUsers,
-    FaDownload,
-    FaPlay,
-    FaPlus,
-    FaComment,
-    FaStickyNote,
-    FaCalendarCheck,
-    FaExclamationTriangle,
-    FaEye,
-    FaSave
+    FaArrowLeft, FaCalendarAlt, FaClock, FaVideo, FaUserTie, FaUserShield,
+    FaCheckCircle, FaTimes, FaUsers, FaExclamationTriangle, FaEye, FaSave,
+    FaTimesCircle, FaStickyNote, FaComment, FaEdit, FaPlay, FaDownload,
+    FaFileAlt, FaMicrophone, FaCircle, FaFilm, FaChevronDown, FaChevronUp,
+    FaCalendarCheck, FaClipboardList, FaSearch, FaFilter
 } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import useAxiosSecure from '../../../hooks/useAxiosSecure';
 import Loading from '../../../common/loading/Loading';
+import useUserData from "../../../hooks/useUserData";
 
+/* ─── Toast Notification ─────────────────────────────────────── */
+const Toast = ({ message, type = 'success', onClose }) => {
+    const colors = {
+        success: 'bg-emerald-500',
+        error:   'bg-red-500',
+    };
+    return (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl text-white text-sm font-semibold ${colors[type]} animate-bounce-in`}
+            style={{ animation: 'slideDown 0.3s ease' }}>
+            {type === 'success'
+                ? <FaCheckCircle className="text-lg flex-shrink-0" />
+                : <FaExclamationTriangle className="text-lg flex-shrink-0" />}
+            <span>{message}</span>
+            <button onClick={onClose} className="ml-2 hover:opacity-70 transition-opacity">
+                <FaTimes />
+            </button>
+            <style>{`
+                @keyframes slideDown {
+                    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                    to   { opacity: 1; transform: translateX(-50%) translateY(0);     }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+/* ─── Tab configuration ─────────────────────────────────────── */
+const TABS = [
+    { id: 'overview',  label: 'Overview',          icon: FaClipboardList },
+    { id: 'attendance',label: 'Attendance',         icon: FaUsers },
+    { id: 'notes',     label: 'Private Notes',      icon: FaStickyNote },
+    { id: 'recording', label: 'Video Recording',    icon: FaFilm },
+    { id: 'summary',   label: 'Recording Summary',  icon: FaFileAlt },
+];
+
+/* ─── Status helpers ─────────────────────────────────────────── */
+const STATUS_MAP = {
+    completed: { bg: 'bg-emerald-500', label: 'Completed' },
+    scheduled:  { bg: 'bg-blue-500',   label: 'Scheduled'  },
+    cancelled:  { bg: 'bg-red-500',    label: 'Cancelled'  },
+    postponed:  { bg: 'bg-amber-500',  label: 'Postponed'  },
+    ongoing:    { bg: 'bg-violet-500', label: 'In Progress'},
+};
+
+const getStatus = (s) => STATUS_MAP[s?.toLowerCase()] ?? { bg: 'bg-slate-500', label: s || 'Unknown' };
+
+const fmt = (d) => d ? new Date(d).toLocaleString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+}) : 'Not specified';
+
+const fmtDuration = (sec) => {
+    if (!sec) return '—';
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return [h && `${h}h`, m && `${m}m`, s && `${s}s`].filter(Boolean).join(' ');
+};
+
+/* ─── Small reusable components ─────────────────────────────── */
+const Badge = ({ children, color = 'bg-slate-100 text-slate-700' }) => (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${color}`}>
+        {children}
+    </span>
+);
+
+const Card = ({ children, className = '' }) => (
+    <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${className}`}>
+        {children}
+    </div>
+);
+
+const SectionTitle = ({ children, action }) => (
+    <div className="flex items-center justify-between mb-5">
+        <h3 className="text-lg font-bold text-slate-800 tracking-tight">{children}</h3>
+        {action}
+    </div>
+);
+
+const AttendanceToggle = ({ value, onChange }) => (
+    <div className="flex gap-1">
+        <button
+            onClick={() => onChange(value === true ? null : true)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                ${value === true
+                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600'}`}
+        >
+            <FaCheckCircle className="text-xs" /> Present
+        </button>
+        <button
+            onClick={() => onChange(value === false ? null : false)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                ${value === false
+                    ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-red-300 hover:text-red-600'}`}
+        >
+            <FaTimes className="text-xs" /> Absent
+        </button>
+    </div>
+);
+
+const makeInitials = (str) => str ? str.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() : '??';
+
+/* ─── Single attendance row ──────────────────────────────────── */
+const AttendanceRow = ({ label, name, initials, avatarBg, avatarText, value, onChange }) => (
+    <div className="flex items-center justify-between px-5 py-4 hover:bg-slate-50/60 transition-colors">
+        <div className="flex items-center gap-4">
+            <div className={`w-11 h-11 rounded-full ${avatarBg} flex items-center justify-center font-bold text-sm ${avatarText} flex-shrink-0 ring-2 ring-white shadow-sm select-none`}>
+                {initials}
+            </div>
+            <div>
+                <p className="text-sm font-bold text-slate-800">{label}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{name || '—'}</p>
+            </div>
+        </div>
+        <AttendanceToggle value={value} onChange={onChange} />
+    </div>
+);
+
+/* ─── AttendanceTab component ────────────────────────────────── */
+const AttendanceTab = ({
+    hearing, attendanceData, setAttendanceData,
+    setPartyAttendance, totalArbitratorPresent,
+    attendanceSaved, handleAttendanceSave, submitting
+}) => {
+    const plaintiffs = (hearing.attendance?.plaintiffs || []).map((p, i) => {
+        const email = p.email || (typeof p === 'string' ? p : '');
+        return { key: email || `plaintiff_${i}`, email, name: p.name || email || `Plaintiff ${i + 1}` };
+    });
+
+    const defendants = (hearing.attendance?.defendants || []).map((p, i) => {
+        const email = p.email || (typeof p === 'string' ? p : '');
+        return { key: email || `defendant_${i}`, email, name: p.name || email || `Defendant ${i + 1}` };
+    });
+
+    const arbitrators = [
+        { stateKey: 'presidingArbitrator', label: 'Presiding Arbitrator', name: hearing.presidingArbitratorName || 'Not Assigned', fallbackInitials: 'PA', avatarBg: 'bg-violet-100', avatarText: 'text-violet-700' },
+        { stateKey: 'arbitrator1',         label: 'Arbitrator 1',         name: hearing.arbitrator1Name || 'Not Assigned',         fallbackInitials: 'A1', avatarBg: 'bg-blue-100',   avatarText: 'text-blue-700'   },
+        { stateKey: 'arbitrator2',         label: 'Arbitrator 2',         name: hearing.arbitrator2Name || 'Not Assigned',         fallbackInitials: 'A2', avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
+    ];
+
+    const plaintiffsPresent = plaintiffs.filter(p => attendanceData.parties[p.key] === true).length;
+    const defendantsPresent = defendants.filter(d => attendanceData.parties[d.key] === true).length;
+
+    return (
+        <div className="space-y-5">
+            <SectionTitle>Attendance Records</SectionTitle>
+
+            {/* Arbitrators */}
+            <Card className="overflow-hidden">
+                <div className="bg-slate-700 px-5 py-3 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2"><FaUserTie /> Arbitrators</h4>
+                    <span className="text-xs text-slate-300">{totalArbitratorPresent}/3 present</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                    {arbitrators.map(({ stateKey, label, name, fallbackInitials, avatarBg, avatarText }) => (
+                        <AttendanceRow
+                            key={stateKey}
+                            label={label}
+                            name={name}
+                            initials={name !== 'Not Assigned' ? makeInitials(name) : fallbackInitials}
+                            avatarBg={avatarBg}
+                            avatarText={avatarText}
+                            value={attendanceData[stateKey]}
+                            onChange={val => setAttendanceData(p => ({ ...p, [stateKey]: val }))}
+                        />
+                    ))}
+                </div>
+            </Card>
+
+            {/* Plaintiffs */}
+            <Card className="overflow-hidden">
+                <div className="bg-blue-600 px-5 py-3 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <FaUserTie /> Plaintiffs
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{plaintiffs.length}</span>
+                    </h4>
+                    <span className="text-xs text-blue-200">{plaintiffsPresent} present</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                    {plaintiffs.length > 0 ? plaintiffs.map((p, i) => (
+                        <AttendanceRow
+                            key={p.key}
+                            label={`Plaintiff-${i + 1}`}
+                            name={p.name}
+                            initials={makeInitials(p.name)}
+                            avatarBg="bg-blue-100"
+                            avatarText="text-blue-700"
+                            value={attendanceData.parties[p.key]}
+                            onChange={val => setPartyAttendance(p.key, val)}
+                        />
+                    )) : (
+                        <p className="px-5 py-6 text-sm text-slate-400 text-center">No plaintiffs assigned to this hearing.</p>
+                    )}
+                </div>
+            </Card>
+
+            {/* Defendants */}
+            <Card className="overflow-hidden">
+                <div className="bg-red-600 px-5 py-3 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <FaUserShield /> Defendants
+                        <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{defendants.length}</span>
+                    </h4>
+                    <span className="text-xs text-red-200">{defendantsPresent} present</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                    {defendants.length > 0 ? defendants.map((d, i) => (
+                        <AttendanceRow
+                            key={d.key}
+                            label={`Defendant-${i + 1}`}
+                            name={d.name}
+                            initials={makeInitials(d.name)}
+                            avatarBg="bg-red-100"
+                            avatarText="text-red-700"
+                            value={attendanceData.parties[d.key]}
+                            onChange={val => setPartyAttendance(d.key, val)}
+                        />
+                    )) : (
+                        <p className="px-5 py-6 text-sm text-slate-400 text-center">No defendants assigned to this hearing.</p>
+                    )}
+                </div>
+            </Card>
+
+            {/* Save button */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                    onClick={handleAttendanceSave}
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {submitting
+                        ? <><FaCircle className="animate-pulse text-xs" /> Saving...</>
+                        : <><FaSave className="text-xs" /> Save Attendance</>
+                    }
+                </button>
+            </div>
+        </div>
+    );
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════════════ */
 const HearingDetails = () => {
+    const { currentUser } = useUserData();
+    const currentUserEmail = currentUser?.email;
     const navigate = useNavigate();
     const { arbitrationId, hearingId } = useParams();
     const axiosSecure = useAxiosSecure();
+
     const [activeTab, setActiveTab] = useState('overview');
-    const [showCommentModal, setShowCommentModal] = useState(false);
-    const [showNoteModal, setShowNoteModal] = useState(false);
-    const [commentForm, setCommentForm] = useState({
-        arbitratorRole: '',
-        comment: ''
-    });
-    const [noteForm, setNoteForm] = useState({
-        note: ''
+    const [showCommentForm, setShowCommentForm] = useState(false);
+    const [commentForm, setCommentForm] = useState({ comment: '', arbitratorRole: 'presidingarbitrator' });
+    const [showNoteForm, setShowNoteForm] = useState(false);
+    const [noteForm, setNoteForm] = useState({ note: '', arbitratorRole: 'presidingArbitrator' });
+    const [attendanceSaved, setAttendanceSaved] = useState(false);
+    const [searchSummary, setSearchSummary] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    // ── Toast state ──────────────────────────────────────────────
+    const [toast, setToast] = useState(null); // { message, type }
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3500); // auto-dismiss after 3.5s
+    };
+
+    const [attendanceData, setAttendanceData] = useState({
+        presidingArbitrator: null,
+        arbitrator1: null,
+        arbitrator2: null,
+        parties: {}
     });
 
-    // Fetch hearing details
+    /* ── Data fetch ── */
     const { data: hearing, isLoading, error, refetch } = useQuery({
         queryKey: ['hearingDetails', hearingId],
         queryFn: async () => {
-            const response = await axiosSecure.get(`/hearings/${hearingId}`);
-            if (!response.data.success) {
-                throw new Error(response.data.message);
-            }
-            return response.data.data;
+            const res = await axiosSecure.get(`/hearings/${hearingId}`);
+            if (!res.data.success) throw new Error(res.data.message);
+            return res.data.data;
         },
         enabled: !!hearingId,
     });
 
-    const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'completed': return 'bg-green-500 text-white';
-            case 'scheduled': return 'bg-blue-500 text-white';
-            case 'cancelled': return 'bg-red-500 text-white';
-            case 'postponed': return 'bg-yellow-500 text-white';
-            case 'ongoing': return 'bg-purple-500 text-white';
-            default: return 'bg-gray-500 text-white';
+    // Load attendance data from hearing
+    React.useEffect(() => {
+        if (!hearing) return;
+        const parties = {};
+        if (hearing.attendance?.plaintiffs) {
+            hearing.attendance.plaintiffs.forEach(p => {
+                const key = p.email || (typeof p === 'string' ? p : '');
+                if (key) parties[key] = p.present ?? null;
+            });
         }
-    };
-
-    const getStatusText = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'completed': return 'Completed';
-            case 'scheduled': return 'Scheduled';
-            case 'cancelled': return 'Cancelled';
-            case 'postponed': return 'Postponed';
-            case 'ongoing': return 'In Progress';
-            default: return status || 'Unknown';
+        if (hearing.attendance?.defendants) {
+            hearing.attendance.defendants.forEach(d => {
+                const key = d.email || (typeof d === 'string' ? d : '');
+                if (key) parties[key] = d.present ?? null;
+            });
         }
-    };
-
-    const formatDateTime = (dateString) => {
-        if (!dateString) return 'Not specified';
-        return new Date(dateString).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+        setAttendanceData({
+            presidingArbitrator: hearing.attendance?.presidingArbitrator ?? null,
+            arbitrator1: hearing.attendance?.arbitrator1 ?? null,
+            arbitrator2: hearing.attendance?.arbitrator2 ?? null,
+            parties
         });
-    };
+        if (hearing.attendance) setAttendanceSaved(true);
+    }, [hearing]);
 
+    /* ── Handlers ── */
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
-        // Add your API call here to save comment
-        console.log('Submitting comment:', commentForm);
-        setShowCommentModal(false);
-        setCommentForm({ arbitratorRole: '', comment: '' });
-        // refetch(); // Uncomment to refresh data after submission
+        setSubmitting(true);
+        try {
+            await axiosSecure.post(`/hearings/${hearingId}/comments`, {
+                currentUserEmail,
+                comment: commentForm.comment
+            });
+            setShowCommentForm(false);
+            setCommentForm({ comment: '', arbitratorRole: 'presidingarbitrator' });
+            refetch();
+            showToast('Comment added successfully!');
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            showToast('Failed to add comment. Please try again.', 'error');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleNoteSubmit = async (e) => {
         e.preventDefault();
-        // Add your API call here to save note
-        console.log('Submitting note:', noteForm);
-        setShowNoteModal(false);
-        setNoteForm({ note: '' });
-        // refetch(); // Uncomment to refresh data after submission
+        setSubmitting(true);
+        try {
+            await axiosSecure.post(`/hearings/${hearingId}/notes`, {
+                currentUserEmail,
+                note: noteForm.note
+            });
+            setShowNoteForm(false);
+            setNoteForm({ note: '', arbitratorRole: 'presidingArbitrator' });
+            refetch();
+            showToast('Note saved successfully!');
+        } catch (error) {
+            console.error('Error adding note:', error);
+            showToast('Failed to add note. Please try again.', 'error');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
+    // ── Attendance save with toast ───────────────────────────────
+    const handleAttendanceSave = async () => {
+        setSubmitting(true);
+        try {
+            const plaintiffs = [];
+            const defendants = [];
+
+            if (hearing.attendance?.plaintiffs) {
+                hearing.attendance.plaintiffs.forEach(p => {
+                    const email = p.email || (typeof p === 'string' ? p : '');
+                    if (email) plaintiffs.push({ email, present: attendanceData.parties[email] === true });
+                });
+            }
+            if (hearing.attendance?.defendants) {
+                hearing.attendance.defendants.forEach(d => {
+                    const email = d.email || (typeof d === 'string' ? d : '');
+                    if (email) defendants.push({ email, present: attendanceData.parties[email] === true });
+                });
+            }
+
+            const attendancePayload = {
+                presidingArbitrator: attendanceData.presidingArbitrator === true,
+                arbitrator1: attendanceData.arbitrator1 === true,
+                arbitrator2: attendanceData.arbitrator2 === true,
+                plaintiffs,
+                defendants
+            };
+
+            const response = await axiosSecure.patch(`/hearings/${hearingId}/attendance`, {
+                attendance: attendancePayload
+            });
+
+            if (response.data.success) {
+                setAttendanceSaved(true);
+                // ✅ Show toast at top of page
+                showToast('Attendance saved successfully!');
+                // ✅ Scroll to top so user sees the toast
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                refetch();
+            }
+        } catch (error) {
+            console.error('Error saving attendance:', error);
+            showToast('Failed to save attendance. Please try again.', 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const setPartyAttendance = (email, val) =>
+        setAttendanceData(prev => ({ ...prev, parties: { ...prev.parties, [email]: val } }));
+
+    const totalArbitratorPresent =
+        (attendanceData.presidingArbitrator ? 1 : 0) +
+        (attendanceData.arbitrator1 ? 1 : 0) +
+        (attendanceData.arbitrator2 ? 1 : 0);
+
+    /* ── Loading / error states ── */
     if (isLoading) return <Loading />;
 
-    if (error) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center max-w-md mx-auto p-8">
-                    <div className="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <FaExclamationTriangle className="text-3xl text-red-600" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                        Failed to Load Hearing
-                    </h2>
-                    <p className="text-gray-600 mb-4">
-                        {error.message || 'Unable to load hearing details.'}
-                    </p>
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 font-medium"
-                    >
-                        Go Back
-                    </button>
+    if (error) return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="text-center p-8 max-w-md">
+                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FaExclamationTriangle className="text-2xl text-red-500" />
                 </div>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Failed to Load Hearing</h2>
+                <p className="text-slate-500 mb-6">{error.message}</p>
+                <button onClick={() => navigate(-1)}
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                    Go Back
+                </button>
             </div>
-        );
-    }
+        </div>
+    );
 
-    if (!hearing) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading hearing details...</p>
-                </div>
-            </div>
-        );
-    }
+    if (!hearing) return null;
 
+    const status = getStatus(hearing.status);
+
+    /* ─────────────────────────── RENDER ─────────────────────── */
     return (
-        <div className="min-h-screen bg-gray-50 font-sans">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Header Section */}
-                <div className="mb-6">
-                    <button 
-                        onClick={() => navigate(-1)}
-                        className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors mb-4"
-                    >
-                        <FaArrowLeft className="mr-2" />
-                        Back to Arbitration
-                    </button>
-                    
-                    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6">
-                            <div className="flex-1">
-                                <div className="flex items-center mb-4">
-                                    <span 
-                                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold mr-4 ${getStatusColor(hearing.status)}`}
-                                    >
-                                        {getStatusText(hearing.status)}
-                                    </span>
-                                    <span className="font-mono bg-gray-100 px-3 py-1 rounded-lg text-gray-700">
-                                        {hearing.hearingId}
-                                    </span>
+        <div className="min-h-screen bg-slate-50 font-sans">
+
+            {/* ── Toast Notification (fixed top center) ── */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+                {/* Back */}
+                <button onClick={() => navigate(-1)}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+                    <FaArrowLeft /> Back to Previous
+                </button>
+
+                {/* Header Card */}
+                <Card className="p-5">
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+
+                        {/* LEFT — title + status */}
+                        <div className="flex-shrink-0 lg:w-56 xl:w-64">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${status.bg}`}>
+                                    {status.label}
+                                </span>
+                            </div>
+                            <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                                Hearing :<span className="text-blue-600"> {hearing.hearingNumber}</span>
+                            </h1>
+                            <code className="text-xs text-slate-400 font-mono mt-1 block truncate">
+                                {hearing.hearingId}
+                            </code>
+                        </div>
+
+                        {/* DIVIDER */}
+                        <div className="hidden lg:block w-px self-stretch bg-slate-200" />
+
+                        {/* RIGHT — info cards in one row */}
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {/* Date & Time */}
+                            <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                                <FaCalendarAlt className="text-blue-500 flex-shrink-0 text-base" />
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Date & Time</p>
+                                    <p className="text-sm font-semibold text-slate-800 truncate">{fmt(hearing.date)}</p>
                                 </div>
-                                
-                                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                    Hearing #{hearing.hearingNumber}
-                                </h1>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                    <div className="flex items-center text-gray-600">
-                                        <FaCalendarAlt className="mr-3 text-blue-500" />
-                                        <div>
-                                            <p className="text-sm font-medium">Date & Time</p>
-                                            <p className="font-semibold text-gray-900">
-                                                {formatDateTime(hearing.date)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center text-gray-600">
-                                        <FaClock className="mr-3 text-green-500" />
-                                        <div>
-                                            <p className="text-sm font-medium">Duration</p>
-                                            <p className="font-semibold text-gray-900">
-                                                {hearing.duration} minutes
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex items-center text-gray-600">
-                                        <FaVideo className="mr-3 text-purple-500" />
-                                        <div>
-                                            <p className="text-sm font-medium">Meeting Link</p>
-                                            {hearing.meetLink ? (
-                                                <a 
-                                                    href={hearing.meetLink} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="font-semibold text-blue-600 hover:text-blue-800"
-                                                >
-                                                    Join Meeting
-                                                </a>
-                                            ) : (
-                                                <span className="text-gray-500">Not provided</span>
-                                            )}
-                                        </div>
-                                    </div>
+                            </div>
+
+                            {/* Duration */}
+                            <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                                <FaClock className="text-emerald-500 flex-shrink-0 text-base" />
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Duration</p>
+                                    <p className="text-sm font-semibold text-slate-800">{hearing.duration ?? '—'} minutes</p>
                                 </div>
-                                
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <h3 className="font-semibold text-gray-900 mb-2">Hearing Agenda</h3>
-                                    <p className="text-gray-700">{hearing.hearingAgenda}</p>
+                            </div>
+
+                            {/* Meeting Link */}
+                            <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                                <FaVideo className="text-violet-500 flex-shrink-0 text-base" />
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Meeting</p>
+                                    {hearing.meetLink
+                                        ? <a href={hearing.meetLink} target="_blank" rel="noopener noreferrer"
+                                            className="text-sm font-semibold text-blue-600 hover:underline block truncate">
+                                            Join Meeting →
+                                          </a>
+                                        : <p className="text-sm text-slate-400">Not provided</p>}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Middle Section with Tabs */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-8">
-                    <div className="border-b border-gray-200">
-                        <nav className="flex -mb-px">
-                            {['overview', 'notes', 'attendance'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
-                                        activeTab === tab
+                    {/* Agenda — below, compact */}
+                    {hearing.hearingAgenda && (
+                        <div className="mt-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3">
+                            <FaClipboardList className="text-blue-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-0.5">Agenda</p>
+                                <p className="text-slate-700 text-sm leading-relaxed">{hearing.hearingAgenda}</p>
+                            </div>
+                        </div>
+                    )}
+                </Card>
+
+                {/* Tabbed Panel */}
+                <Card>
+                    <div className="border-b border-slate-200 px-2">
+                        <nav className="flex overflow-x-auto scrollbar-none">
+                            {TABS.map(({ id, label, icon: Icon }) => (
+                                <button key={id}
+                                    onClick={() => { setActiveTab(id); setShowCommentForm(false); setShowNoteForm(false); }}
+                                    className={`flex items-center gap-2 py-4 px-5 text-sm font-semibold border-b-2 whitespace-nowrap transition-all
+                                        ${activeTab === id
                                             ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
-                                >
-                                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                            : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'}`}>
+                                    <Icon className="text-xs" />
+                                    {label}
                                 </button>
                             ))}
                         </nav>
                     </div>
 
                     <div className="p-6">
-                        {/* Overview Tab - Arbitrator Comments */}
+
+                        {/* OVERVIEW TAB */}
                         {activeTab === 'overview' && (
                             <div className="space-y-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-xl font-semibold text-gray-900">Arbitrator Comments</h3>
-                                    <button 
-                                        onClick={() => setShowCommentModal(true)}
-                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                    >
-                                        <FaComment className="mr-2" />
-                                        Add Comment
-                                    </button>
-                                </div>
+                                <SectionTitle
+                                    action={!showCommentForm && (
+                                        <button onClick={() => setShowCommentForm(true)}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
+                                            <FaComment className="text-xs" /> Add Comment
+                                        </button>
+                                    )}>
+                                    Arbitrator Comments
+                                </SectionTitle>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Presiding Arbitrator Comment */}
-                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                                        <div className="flex items-center mb-4">
-                                            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                                <FaUserTie className="text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-semibold text-purple-800">Presiding Arbitrator</h4>
-                                                <p className="text-sm text-purple-600">Lead Arbitrator</p>
-                                            </div>
+                                {showCommentForm && (
+                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-2">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="font-bold text-slate-800">New Comment</h4>
+                                            <button onClick={() => { setShowCommentForm(false); setCommentForm({ comment: '', arbitratorRole: 'presidingarbitrator' }); }}
+                                                className="text-slate-400 hover:text-slate-600">
+                                                <FaTimesCircle />
+                                            </button>
                                         </div>
-                                        <div className="bg-white rounded-lg p-4 border border-purple-100">
-                                            {hearing.presidingArbitratorComment ? (
-                                                <p className="text-gray-700">{hearing.presidingArbitratorComment}</p>
-                                            ) : (
-                                                <p className="text-gray-500 italic">No comment added yet</p>
-                                            )}
-                                        </div>
+                                        <form onSubmit={handleCommentSubmit} className="space-y-4">
+                                            <textarea
+                                                value={commentForm.comment}
+                                                onChange={e => setCommentForm(p => ({ ...p, comment: e.target.value }))}
+                                                rows={4} required placeholder="Write your comment…"
+                                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                                            <div className="flex justify-end gap-3">
+                                                <button type="button" onClick={() => setShowCommentForm(false)}
+                                                    className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 font-medium">Cancel</button>
+                                                <button type="submit" disabled={submitting}
+                                                    className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <FaSave className="text-xs" /> {submitting ? 'Saving...' : 'Save Comment'}
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
+                                )}
 
-                                    {/* Arbitrator 1 Comment */}
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                                        <div className="flex items-center mb-4">
-                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                                <FaUserTie className="text-blue-600" />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                    {[
+                                        { role: 'presidingarbitrator', label: 'Presiding Arbitrator', sub: 'Lead Arbitrator', color: 'violet' },
+                                        { role: 'arbitrator1', label: 'Arbitrator 1', sub: 'Panel Member', color: 'blue' },
+                                        { role: 'arbitrator2', label: 'Arbitrator 2', sub: 'Panel Member', color: 'emerald' },
+                                    ].map(({ role, label, sub, color }) => (
+                                        <div key={role} className={`bg-${color}-50 border border-${color}-100 rounded-2xl p-5`}>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className={`w-9 h-9 bg-${color}-100 rounded-full flex items-center justify-center`}>
+                                                    <FaUserTie className={`text-${color}-600 text-sm`} />
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm font-bold text-${color}-800`}>{label}</p>
+                                                    <p className={`text-xs text-${color}-500`}>{sub}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 className="font-semibold text-blue-800">Arbitrator 1</h4>
-                                                <p className="text-sm text-blue-600">Panel Member</p>
+                                            <div className="bg-white rounded-xl p-4 border border-white/80 space-y-3 max-h-60 overflow-y-auto">
+                                                {hearing.arbitratorComments?.[role]?.length > 0 ? (
+                                                    hearing.arbitratorComments[role].map((comment, idx) => (
+                                                        <div key={comment.commentId || idx} className="border-b border-slate-100 last:border-0 pb-3 last:pb-0">
+                                                            <p className="text-slate-700 text-sm leading-relaxed">{comment.comment}</p>
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <p className="text-xs text-slate-400">
+                                                                    {new Date(comment.timestamp).toLocaleString()}
+                                                                    {comment.edited && ' (edited)'}
+                                                                </p>
+                                                                {comment.createdBy && <span className="text-xs text-slate-400">{comment.createdBy}</span>}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-slate-400 italic text-sm">No comment added yet</p>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="bg-white rounded-lg p-4 border border-blue-100">
-                                            {hearing.arbitrator1Comment ? (
-                                                <p className="text-gray-700">{hearing.arbitrator1Comment}</p>
-                                            ) : (
-                                                <p className="text-gray-500 italic">No comment added yet</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Arbitrator 2 Comment */}
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                                        <div className="flex items-center mb-4">
-                                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                                                <FaUserTie className="text-green-600" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-semibold text-green-800">Arbitrator 2</h4>
-                                                <p className="text-sm text-green-600">Panel Member</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-lg p-4 border border-green-100">
-                                            {hearing.arbitrator2Comment ? (
-                                                <p className="text-gray-700">{hearing.arbitrator2Comment}</p>
-                                            ) : (
-                                                <p className="text-gray-500 italic">No comment added yet</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Quick Stats */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                                        <div className="text-2xl font-bold text-blue-600 mb-1">
-                                            #{hearing.hearingNumber}
-                                        </div>
-                                        <div className="text-sm text-gray-600">Hearing Number</div>
-                                    </div>
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                                        <div className="text-2xl font-bold text-green-600 mb-1">
-                                            {hearing.duration}
-                                        </div>
-                                        <div className="text-sm text-gray-600">Duration (min)</div>
-                                    </div>
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                                        <div className="text-2xl font-bold text-purple-600 mb-1">
-                                            {hearing.attendance?.plaintiffs?.length || 0}
-                                        </div>
-                                        <div className="text-sm text-gray-600">Plaintiffs Present</div>
-                                    </div>
-                                    <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                                        <div className="text-2xl font-bold text-red-600 mb-1">
-                                            {hearing.attendance?.defendants?.length || 0}
-                                        </div>
-                                        <div className="text-sm text-gray-600">Defendants Present</div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* Notes Tab - Private Notes */}
+                        {/* ATTENDANCE TAB */}
+                        {activeTab === 'attendance' && (
+                            <AttendanceTab
+                                hearing={hearing}
+                                attendanceData={attendanceData}
+                                setAttendanceData={setAttendanceData}
+                                setPartyAttendance={setPartyAttendance}
+                                totalArbitratorPresent={totalArbitratorPresent}
+                                attendanceSaved={attendanceSaved}
+                                handleAttendanceSave={handleAttendanceSave}
+                                submitting={submitting}
+                            />
+                        )}
+
+                        {/* NOTES TAB */}
                         {activeTab === 'notes' && (
                             <div className="space-y-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-xl font-semibold text-gray-900">Private Notes</h3>
-                                    <button 
-                                        onClick={() => setShowNoteModal(true)}
-                                        className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                                    >
-                                        <FaStickyNote className="mr-2" />
-                                        Add Note
-                                    </button>
-                                </div>
+                                <SectionTitle
+                                    action={!showNoteForm && (
+                                        <button onClick={() => setShowNoteForm(true)}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 transition-colors">
+                                            <FaStickyNote className="text-xs" /> Add Note
+                                        </button>
+                                    )}>
+                                    Private Notes
+                                </SectionTitle>
 
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                                    <div className="flex items-center mb-4">
-                                        <FaStickyNote className="text-yellow-600 mr-3 text-xl" />
-                                        <h4 className="font-semibold text-yellow-800">Private Notes Section</h4>
-                                    </div>
-                                    
-                                    {hearing.privateNotes ? (
-                                        <div className="bg-white rounded-lg p-4 border border-yellow-100">
-                                            <p className="text-gray-700 whitespace-pre-wrap">{hearing.privateNotes}</p>
-                                            <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
-                                                <button className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                                    <FaEdit className="mr-1" />
-                                                    Edit Note
+                                {showNoteForm && (
+                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="font-bold text-slate-800">New Private Note</h4>
+                                            <button onClick={() => { setShowNoteForm(false); setNoteForm({ note: '', arbitratorRole: 'presidingArbitrator' }); }}
+                                                className="text-slate-400 hover:text-slate-600"><FaTimesCircle /></button>
+                                        </div>
+                                        <form onSubmit={handleNoteSubmit} className="space-y-4">
+                                            <textarea
+                                                value={noteForm.note}
+                                                onChange={e => setNoteForm(p => ({ ...p, note: e.target.value }))}
+                                                rows={6} required
+                                                placeholder="Private notes are only visible to arbitrators and administrators…"
+                                                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                                            <div className="flex justify-end gap-3">
+                                                <button type="button" onClick={() => setShowNoteForm(false)}
+                                                    className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 font-medium">Cancel</button>
+                                                <button type="submit" disabled={submitting}
+                                                    className="inline-flex items-center gap-2 px-5 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <FaSave className="text-xs" /> {submitting ? 'Saving...' : 'Save Note'}
                                                 </button>
                                             </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <FaStickyNote className="text-amber-500" />
+                                        <h4 className="font-bold text-amber-800">Private Notes</h4>
+                                    </div>
+                                    {hearing.privateNotes?.length > 0 ? (
+                                        <div className="space-y-4 max-h-96 overflow-y-auto">
+                                            {hearing.privateNotes.map((note, idx) => (
+                                                <div key={note.noteId || idx} className="bg-white rounded-xl p-4 border border-amber-100">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full">{note.arbitratorRole}</span>
+                                                        <span className="text-xs text-slate-400">{new Date(note.timestamp).toLocaleString()}</span>
+                                                    </div>
+                                                    <p className="text-slate-700 text-sm whitespace-pre-wrap leading-relaxed">{note.note}</p>
+                                                    {note.edited && <p className="text-xs text-slate-400 mt-2">(edited)</p>}
+                                                    {note.createdBy && <p className="text-xs text-slate-400 mt-1">by {note.createdBy}</p>}
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <FaStickyNote className="text-4xl mx-auto mb-2 text-gray-300" />
-                                            <p className="text-lg font-medium mb-2">No Private Notes</p>
-                                            <p className="text-sm">Add private notes for internal reference and documentation.</p>
+                                        <div className="text-center py-10 text-slate-400">
+                                            <FaStickyNote className="text-4xl mx-auto mb-3 opacity-30" />
+                                            <p className="font-semibold text-slate-500">No Private Notes</p>
+                                            <p className="text-sm mt-1">Add notes for internal reference only.</p>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Notes Information */}
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <div className="flex items-start">
-                                        <FaEye className="text-blue-500 mr-3 mt-1 flex-shrink-0" />
-                                        <div>
-                                            <h4 className="font-semibold text-blue-800 mb-1">Private Notes Information</h4>
-                                            <p className="text-blue-700 text-sm">
-                                                Private notes are only visible to arbitrators and administrators. 
-                                                Use this section for internal observations, reminders, or sensitive information 
-                                                that should not be shared with the parties.
-                                            </p>
-                                        </div>
-                                    </div>
+                                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
+                                    <FaEye className="text-blue-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-blue-700 text-sm">
+                                        <strong>Visibility: </strong>Private notes are only visible to arbitrators and administrators.
+                                    </p>
                                 </div>
                             </div>
                         )}
 
-                        {/* Attendance Tab */}
-                        {activeTab === 'attendance' && (
+                        {/* VIDEO RECORDING TAB */}
+                        {activeTab === 'recording' && (
                             <div className="space-y-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-xl font-semibold text-gray-900">Attendance Records</h3>
-                                    <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-                                        <FaCalendarCheck className="mr-2" />
-                                        Update Attendance
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Arbitrator Attendance */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <FaUserTie className="mr-2 text-blue-500" />
-                                            Arbitrator Attendance
-                                        </h3>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                                <span className="text-gray-700 font-medium">Presiding Arbitrator</span>
-                                                <div className="flex items-center">
-                                                    {hearing.attendance?.presidingArbitrator ? (
-                                                        <>
-                                                            <FaCheckCircle className="text-green-500 mr-2" />
-                                                            <span className="text-green-600 font-medium">Present</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FaTimes className="text-red-500 mr-2" />
-                                                            <span className="text-red-600 font-medium">Absent</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                                <span className="text-gray-700 font-medium">Arbitrator 1</span>
-                                                <div className="flex items-center">
-                                                    {hearing.attendance?.arbitrator1 ? (
-                                                        <>
-                                                            <FaCheckCircle className="text-green-500 mr-2" />
-                                                            <span className="text-green-600 font-medium">Present</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FaTimes className="text-red-500 mr-2" />
-                                                            <span className="text-red-600 font-medium">Absent</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                                <span className="text-gray-700 font-medium">Arbitrator 2</span>
-                                                <div className="flex items-center">
-                                                    {hearing.attendance?.arbitrator2 ? (
-                                                        <>
-                                                            <FaCheckCircle className="text-green-500 mr-2" />
-                                                            <span className="text-green-600 font-medium">Present</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FaTimes className="text-red-500 mr-2" />
-                                                            <span className="text-red-600 font-medium">Absent</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Parties Attendance */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <FaUsers className="mr-2 text-green-500" />
-                                            Parties Attendance
-                                        </h3>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <h4 className="font-medium text-gray-700 mb-3 flex items-center">
-                                                    <FaUserTie className="mr-2 text-blue-400" />
-                                                    Plaintiffs Present ({hearing.attendance?.plaintiffs?.length || 0})
-                                                </h4>
-                                                {hearing.attendance?.plaintiffs && hearing.attendance.plaintiffs.length > 0 ? (
-                                                    <div className="space-y-2">
-                                                        {hearing.attendance.plaintiffs.map((plaintiff, index) => (
-                                                            <div key={index} className="flex items-center p-2 bg-green-50 rounded border border-green-200">
-                                                                <FaCheckCircle className="text-green-500 mr-2 text-sm" />
-                                                                <span className="text-sm text-gray-700">{plaintiff}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded border border-gray-200">
-                                                        No plaintiffs marked present
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-medium text-gray-700 mb-3 flex items-center">
-                                                    <FaUserShield className="mr-2 text-red-400" />
-                                                    Defendants Present ({hearing.attendance?.defendants?.length || 0})
-                                                </h4>
-                                                {hearing.attendance?.defendants && hearing.attendance.defendants.length > 0 ? (
-                                                    <div className="space-y-2">
-                                                        {hearing.attendance.defendants.map((defendant, index) => (
-                                                            <div key={index} className="flex items-center p-2 bg-green-50 rounded border border-green-200">
-                                                                <FaCheckCircle className="text-green-500 mr-2 text-sm" />
-                                                                <span className="text-sm text-gray-700">{defendant}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded border border-gray-200">
-                                                        No defendants marked present
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Attendance Summary */}
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <div className="flex items-center">
-                                        <FaCalendarCheck className="text-blue-500 mr-3 text-xl" />
+                                <SectionTitle>Video Recordings</SectionTitle>
+                                {hearing.recordingStatus === 'processing' && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+                                        <FaCircle className="text-amber-400 animate-pulse" />
                                         <div>
-                                            <h4 className="font-semibold text-blue-800">Attendance Summary</h4>
-                                            <p className="text-blue-700 text-sm">
-                                                Total participants present: {
-                                                    (hearing.attendance?.presidingArbitrator ? 1 : 0) +
-                                                    (hearing.attendance?.arbitrator1 ? 1 : 0) +
-                                                    (hearing.attendance?.arbitrator2 ? 1 : 0) +
-                                                    (hearing.attendance?.plaintiffs?.length || 0) +
-                                                    (hearing.attendance?.defendants?.length || 0)
-                                                } out of {
-                                                    3 + (hearing.attendance?.plaintiffs?.length || 0) + (hearing.attendance?.defendants?.length || 0)
-                                                } expected participants
-                                            </p>
+                                            <p className="text-sm font-bold text-amber-800">Recording Processing</p>
+                                            <p className="text-xs text-amber-600">The recording is being processed and will be available shortly.</p>
                                         </div>
                                     </div>
-                                </div>
+                                )}
+                                {hearing.recordings?.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {hearing.recordings.map((rec, i) => (
+                                            <Card key={rec.id || i} className="p-5">
+                                                <div className="flex items-start justify-between gap-4 flex-wrap">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                            <FaFilm className="text-violet-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800">{rec.title || `Recording ${i + 1}`}</p>
+                                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-400">
+                                                                {rec.duration && <span><FaClock className="inline mr-1" />{fmtDuration(rec.duration)}</span>}
+                                                                {rec.size && <span>{(rec.size / (1024 * 1024)).toFixed(1)} MB</span>}
+                                                                {rec.uploadedAt && <span>Uploaded {fmt(rec.uploadedAt)}</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {rec.url && (
+                                                        <div className="flex items-center gap-2">
+                                                            <a href={rec.url} target="_blank" rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors">
+                                                                <FaPlay className="text-xs" /> Play
+                                                            </a>
+                                                            <a href={rec.url} download
+                                                                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors">
+                                                                <FaDownload className="text-xs" /> Download
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-16 text-slate-400">
+                                        <FaVideo className="text-5xl mx-auto mb-4 opacity-20" />
+                                        <p className="font-bold text-slate-500 text-lg">No Recordings Found</p>
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </div>
-                </div>
 
-                {/* Comment Modal */}
-                {showCommentModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-xl max-w-md w-full p-6">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-4">Add Arbitrator Comment</h3>
-                            <form onSubmit={handleCommentSubmit}>
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Select Arbitrator Role
-                                    </label>
-                                    <select 
-                                        value={commentForm.arbitratorRole}
-                                        onChange={(e) => setCommentForm(prev => ({...prev, arbitratorRole: e.target.value}))}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        required
-                                    >
-                                        <option value="">Choose role...</option>
-                                        <option value="presiding">Presiding Arbitrator</option>
-                                        <option value="arbitrator1">Arbitrator 1</option>
-                                        <option value="arbitrator2">Arbitrator 2</option>
-                                    </select>
-                                </div>
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Comment
-                                    </label>
-                                    <textarea 
-                                        value={commentForm.comment}
-                                        onChange={(e) => setCommentForm(prev => ({...prev, comment: e.target.value}))}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                        rows="4"
-                                        placeholder="Enter your comment here..."
-                                        required
-                                    ></textarea>
-                                </div>
-                                <div className="flex justify-end space-x-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowCommentModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        type="submit"
-                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                                    >
-                                        <FaSave className="mr-2" />
-                                        Save Comment
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
+                        {/* RECORDING SUMMARY TAB */}
+                        {activeTab === 'summary' && (
+                            <div className="space-y-6">
+                                <SectionTitle>Recording Summary & Transcript</SectionTitle>
+                                {hearing.recordingSummary ? (
+                                    <Card className="p-5">
+                                        <p className="text-slate-600 text-sm leading-relaxed">{hearing.recordingSummary}</p>
+                                    </Card>
+                                ) : (
+                                    <div className="text-center py-16 text-slate-400">
+                                        <FaFileAlt className="text-5xl mx-auto mb-4 opacity-20" />
+                                        <p className="font-bold text-slate-500 text-lg">No Summary Available</p>
+                                        <p className="text-sm mt-1 max-w-sm mx-auto">
+                                            A recording summary will appear here once the recording has been processed.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                {/* Note Modal */}
-                {showNoteModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-xl max-w-md w-full p-6">
-                            <h3 className="text-xl font-semibold text-gray-900 mb-4">Add Private Note</h3>
-                            <form onSubmit={handleNoteSubmit}>
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Private Note
-                                    </label>
-                                    <textarea 
-                                        value={noteForm.note}
-                                        onChange={(e) => setNoteForm(prev => ({...prev, note: e.target.value}))}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                        rows="6"
-                                        placeholder="Enter your private notes here. These notes are only visible to arbitrators and administrators."
-                                        required
-                                    ></textarea>
-                                </div>
-                                <div className="flex justify-end space-x-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowNoteModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        type="submit"
-                                        className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                                    >
-                                        <FaSave className="mr-2" />
-                                        Save Note
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
-                )}
+                </Card>
             </div>
         </div>
     );
