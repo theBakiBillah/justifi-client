@@ -2,22 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
-    FaBriefcase,
-    FaCalendarAlt,
-    FaCheckCircle,
-    FaClock,
-    FaFileAlt,
-    FaLock,
-    FaMoneyBillWave,
-    FaPhone,
-    FaStar,
-    FaUser,
+  FaBriefcase,
+  FaCalendarAlt,
+  FaCheckCircle,
+  FaClock,
+  FaFileAlt,
+  FaLock,
+  FaMoneyBillWave,
+  FaPhone,
+  FaStar,
+  FaUser,
 } from "react-icons/fa";
 import {
-    HiOutlineCalendar,
-    HiOutlineClock,
-    HiOutlineDocumentText,
-    HiShieldCheck,
+  HiOutlineCalendar,
+  HiOutlineClock,
+  HiOutlineDocumentText,
+  HiShieldCheck,
 } from "react-icons/hi";
 import { IoAlertCircle, IoChevronForward } from "react-icons/io5";
 import { MdAccessTime, MdEmail, MdWork } from "react-icons/md";
