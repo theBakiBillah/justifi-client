@@ -17,7 +17,6 @@ import {
     FaStar,
     FaTimes,
     FaTrash,
-    FaUniversity,
     FaUser,
     FaUserTie,
 } from "react-icons/fa";
@@ -132,7 +131,10 @@ const ArbitratorProfile = () => {
 
     const addLanguage = useCallback(() => {
         if (newLanguage && !arbitrator.languages?.includes(newLanguage)) {
-            const updatedLanguages = [...(arbitrator.languages || []), newLanguage];
+            const updatedLanguages = [
+                ...(arbitrator.languages || []),
+                newLanguage,
+            ];
             updateField("languages", updatedLanguages);
             setNewLanguage("");
         }
@@ -173,9 +175,9 @@ const ArbitratorProfile = () => {
 
     const removeSpecialization = useCallback(
         (specToRemove) => {
-            const updatedSpecializations = (arbitrator.specialization || []).filter(
-                (spec) => spec !== specToRemove
-            );
+            const updatedSpecializations = (
+                arbitrator.specialization || []
+            ).filter((spec) => spec !== specToRemove);
             updateField("specialization", updatedSpecializations);
             // Collapse the edit field after deleting
             setIsEditing(false);
@@ -347,7 +349,9 @@ const ArbitratorProfile = () => {
                                     className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:text-gray-800 transition-colors duration-200"
                                 >
                                     <FaArrowLeft className="text-sm" />
-                                    <span className="hidden xs:inline">Back to Arbitrators</span>
+                                    <span className="hidden xs:inline">
+                                        Back to Arbitrators
+                                    </span>
                                     <span className="xs:hidden">Back</span>
                                 </button>
                             )}
@@ -406,7 +410,9 @@ const ArbitratorProfile = () => {
                                             key={star}
                                             className={`text-xs sm:text-sm ${
                                                 star <=
-                                                Math.floor(arbitrator.rating || 0)
+                                                Math.floor(
+                                                    arbitrator.rating || 0
+                                                )
                                                     ? "text-yellow-400"
                                                     : "text-gray-300"
                                             }`}
@@ -424,7 +430,8 @@ const ArbitratorProfile = () => {
                                         Arbitrator ID
                                     </span>
                                     <span className="font-medium text-gray-900">
-                                        {arbitrator._id?.substring(0, 8) || "N/A"}
+                                        {arbitrator._id?.substring(0, 8) ||
+                                            "N/A"}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs sm:text-sm">
@@ -594,7 +601,8 @@ const ArbitratorProfile = () => {
                                             Gender
                                         </label>
                                         <p className="text-gray-900 font-medium text-sm sm:text-base">
-                                            {arbitrator.gender || "Not provided"}
+                                            {arbitrator.gender ||
+                                                "Not provided"}
                                         </p>
                                     </div>
                                     <div className="sm:col-span-2 space-y-1">
@@ -602,7 +610,8 @@ const ArbitratorProfile = () => {
                                             Office Address
                                         </label>
                                         <p className="text-gray-900 font-medium text-sm sm:text-base">
-                                            {arbitrator.address || "Not provided"}
+                                            {arbitrator.address ||
+                                                "Not provided"}
                                         </p>
                                     </div>
                                 </div>
@@ -706,29 +715,31 @@ const ArbitratorProfile = () => {
                             >
                                 <div className="space-y-3 sm:space-y-4">
                                     <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                        {arbitrator.specialization?.map((spec) => (
-                                            <span
-                                                key={spec}
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 text-xs sm:text-sm font-medium rounded-full border border-purple-200"
-                                            >
-                                                <span className="max-w-[120px] sm:max-w-none truncate">
-                                                    {spec}
+                                        {arbitrator.specialization?.map(
+                                            (spec) => (
+                                                <span
+                                                    key={spec}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 text-xs sm:text-sm font-medium rounded-full border border-purple-200"
+                                                >
+                                                    <span className="max-w-[120px] sm:max-w-none truncate">
+                                                        {spec}
+                                                    </span>
+                                                    {editSection ===
+                                                        "specialization" && (
+                                                        <button
+                                                            onClick={() =>
+                                                                removeSpecialization(
+                                                                    spec
+                                                                )
+                                                            }
+                                                            className="text-purple-500 hover:text-purple-700 transition-colors flex-shrink-0"
+                                                        >
+                                                            <FaTrash className="text-xs" />
+                                                        </button>
+                                                    )}
                                                 </span>
-                                                {editSection ===
-                                                    "specialization" && (
-                                                    <button
-                                                        onClick={() =>
-                                                            removeSpecialization(
-                                                                spec
-                                                            )
-                                                        }
-                                                        className="text-purple-500 hover:text-purple-700 transition-colors flex-shrink-0"
-                                                    >
-                                                        <FaTrash className="text-xs" />
-                                                    </button>
-                                                )}
-                                            </span>
-                                        ))}
+                                            )
+                                        )}
                                         {(!arbitrator.specialization ||
                                             arbitrator.specialization.length ===
                                                 0) && (
@@ -773,31 +784,34 @@ const ArbitratorProfile = () => {
                             >
                                 <div className="space-y-3 sm:space-y-4">
                                     <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                        {arbitrator.languages?.map((language) => (
-                                            <span
-                                                key={language}
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs sm:text-sm font-medium rounded-full border border-green-200"
-                                            >
-                                                <span className="max-w-[120px] sm:max-w-none truncate">
-                                                    {language}
+                                        {arbitrator.languages?.map(
+                                            (language) => (
+                                                <span
+                                                    key={language}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs sm:text-sm font-medium rounded-full border border-green-200"
+                                                >
+                                                    <span className="max-w-[120px] sm:max-w-none truncate">
+                                                        {language}
+                                                    </span>
+                                                    {editSection ===
+                                                        "languages" && (
+                                                        <button
+                                                            onClick={() =>
+                                                                removeLanguage(
+                                                                    language
+                                                                )
+                                                            }
+                                                            className="text-green-500 hover:text-green-700 transition-colors flex-shrink-0"
+                                                        >
+                                                            <FaTrash className="text-xs" />
+                                                        </button>
+                                                    )}
                                                 </span>
-                                                {editSection ===
-                                                    "languages" && (
-                                                    <button
-                                                        onClick={() =>
-                                                            removeLanguage(
-                                                                language
-                                                            )
-                                                        }
-                                                        className="text-green-500 hover:text-green-700 transition-colors flex-shrink-0"
-                                                    >
-                                                        <FaTrash className="text-xs" />
-                                                    </button>
-                                                )}
-                                            </span>
-                                        ))}
+                                            )
+                                        )}
                                         {(!arbitrator.languages ||
-                                            arbitrator.languages.length === 0) && (
+                                            arbitrator.languages.length ===
+                                                0) && (
                                             <span className="text-gray-500 text-xs sm:text-sm">
                                                 No languages added
                                             </span>
