@@ -51,6 +51,8 @@ import ArbitrationsManagement from "./dashboard/admin/pages/arbitrationManagemen
 import AdminArbitrationDetails from "./dashboard/admin/pages/arbitrationManagement/AdminArbitrationDetails";
 import Arbitration_Agreement from "./dashboard/admin/pages/Arbitration_Agreement";
 import Mediation_Agreement from "./dashboard/admin/pages/Mediation_Agreement";
+import MediationManagement from "./dashboard/admin/pages/mediationManagement/MediationManagement";
+import AdminMediationDetails from "./dashboard/admin/pages/mediationManagement/AdminMediationDetails";
 
 const queryClient = new QueryClient();
 
@@ -143,6 +145,14 @@ createRoot(document.getElementById("root")).render(
             <Route
               path="arbitration-agreement/:caseId"
               element={<Arbitration_Agreement />}
+            />
+            <Route
+              path="mediation-management"
+              element={<MediationManagement />}
+            />
+            <Route
+              path="mediations/:id"
+              element={<AdminMediationDetails />}
             />
           </Route>
         </Routes>

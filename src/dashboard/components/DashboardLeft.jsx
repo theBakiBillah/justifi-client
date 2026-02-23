@@ -160,8 +160,8 @@ const DashboardLeft = () => {
       icon: <FaHandshake className="text-lg" />,
     },
     {
-      name: "All Mediatons",
-      path: "/admin/all-mediations",
+      name: "Mediations Management",
+      path: "/admin/mediation-management",
       icon: <FaHandshake className="text-lg" />,
     },
   ];
