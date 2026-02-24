@@ -1,34 +1,22 @@
-import { useRef, useState } from "react";
+import React, { useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import useAxiosSecure from "../../../hooks/useAxiosSecure";
-import ArbAgreementPreview from "../components/ArbAgreementPreview";
 import ArbitrationForm from "../components/ArbitrationForm";
+import ArbAgreementPreview from "../components/ArbAgreementPreview";
+import useAxiosSecure from "../../../hooks/useAxiosSecure";
 
 function Arbitration_Agreement() {
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState(null);
-  const [arbitrationId, setArbitrationId] = useState(null);
   const pdfContainerRef = useRef(null);
   const axiosSecure = useAxiosSecure();
 
   // Get caseId from URL parameters
   const { caseId } = useParams();
 
-  const handleFormSubmit = async (data) => {
+  const handleFormSubmit = (data) => {
     setFormData(data);
-
-    try {
-      // Save agreement form data — backend now returns arbitrationId
-      const response = await axiosSecure.patch(`/arbitration-agreement`, {
-        data,
-      });
-      const resolvedArbitrationId = response?.data?.arbitrationId || null;
-      console.log("Resolved arbitrationId:", resolvedArbitrationId);
-      setArbitrationId(resolvedArbitrationId);
-    } catch (error) {
-      console.error("Failed to save agreement data:", error);
-    }
-
+    console.log("data: ", data);
+    const response = axiosSecure.patch(`/arbitration-agreement`, { data });
     setShowPreview(true);
   };
 
@@ -51,7 +39,6 @@ function Arbitration_Agreement() {
             onBack={handleBackToForm}
             pdfContainerRef={pdfContainerRef}
             caseId={caseId}
-            arbitrationId={arbitrationId}
           />
         )}
       </div>
