@@ -5,11 +5,20 @@ import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router-dom";
 import useAxiosSecure from "../../../hooks/useAxiosSecure";
 
-const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
+const ArbAgreementPreview = ({
+  formData,
+  onBack,
+  pdfContainerRef,
+  caseId,
+  arbitrationId: arbitrationIdProp,
+}) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
   const axiosSecure = useAxiosSecure();
+
+  // Resolve arbitrationId from prop, then formData, as fallback
+  const arbitrationId = arbitrationIdProp || formData?.arbitrationId || null;
 
   useEffect(() => {
     if (formData && pdfContainerRef.current) {
@@ -123,8 +132,10 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
     });
     yPos += 6;
 
-    if (caseId) {
-      pdf.text(`Case ID: ${caseId}`, pageWidth / 2, yPos, { align: "center" });
+    if (arbitrationId) {
+      pdf.text(`Arbitration ID: ${arbitrationId}`, pageWidth / 2, yPos, {
+        align: "center",
+      });
       yPos += 6;
     }
 
@@ -932,15 +943,15 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
     try {
       const pdfBlob = await buildPDFBlob();
 
-      const fileName = caseId
-        ? `arbitration-agreement-${caseId}.pdf`
+      const fileName = arbitrationId
+        ? `arbitration-agreement-${arbitrationId}.pdf`
         : `arbitration-agreement-${Date.now()}.pdf`;
 
       const file = new File([pdfBlob], fileName, { type: "application/pdf" });
 
       const formPayload = new FormData();
       formPayload.append("file", file, fileName);
-      formPayload.append("arbitrationId", caseId || "");
+      formPayload.append("arbitrationId", arbitrationId || "");
       formPayload.append("caseId", caseId || "");
       formPayload.append("role", "admin");
 

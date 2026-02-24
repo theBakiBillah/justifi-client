@@ -7,16 +7,28 @@ import ArbitrationForm from "../components/ArbitrationForm";
 function Arbitration_Agreement() {
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState(null);
+  const [arbitrationId, setArbitrationId] = useState(null);
   const pdfContainerRef = useRef(null);
   const axiosSecure = useAxiosSecure();
 
   // Get caseId from URL parameters
   const { caseId } = useParams();
 
-  const handleFormSubmit = (data) => {
+  const handleFormSubmit = async (data) => {
     setFormData(data);
-    console.log("data: ", data);
-    const response = axiosSecure.patch(`/arbitration-agreement`, { data });
+
+    try {
+      // Save agreement form data — backend now returns arbitrationId
+      const response = await axiosSecure.patch(`/arbitration-agreement`, {
+        data,
+      });
+      const resolvedArbitrationId = response?.data?.arbitrationId || null;
+      console.log("Resolved arbitrationId:", resolvedArbitrationId);
+      setArbitrationId(resolvedArbitrationId);
+    } catch (error) {
+      console.error("Failed to save agreement data:", error);
+    }
+
     setShowPreview(true);
   };
 
@@ -39,6 +51,7 @@ function Arbitration_Agreement() {
             onBack={handleBackToForm}
             pdfContainerRef={pdfContainerRef}
             caseId={caseId}
+            arbitrationId={arbitrationId}
           />
         )}
       </div>
