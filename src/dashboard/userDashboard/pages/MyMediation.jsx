@@ -1,5 +1,3 @@
-// dashboard/userDashboard/pages/MyMediation.jsx
-
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,8 +22,8 @@ const MyMediation = () => {
   const axiosSecure = useAxiosSecure();
   const { currentUser } = useUserData();
 
-  const [filterStatus, setFilterStatus] = useState("All Cases");
-  const [sortBy, setSortBy] = useState("Date");
+  const [filter, setFilter] = useState("all");
+  const [currentSort, setCurrentSort] = useState("date");
 
   // ================= FETCH DATA =================
   const {
@@ -75,7 +73,12 @@ const MyMediation = () => {
   const getRole = (mediation) =>
     isUserInGroup(mediation.plaintiffs) ? "Plaintiff" : "Defendant";
 
-  const getStatus = (mediation) => mediation.mediation_status || "Pending";
+  // Normalize to Title Case so filter comparisons always match
+  // regardless of how the value is stored in the DB ("pending" vs "Pending")
+  const getStatus = (mediation) => {
+    const raw = mediation.mediation_status || "pending";
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  };
 
   const getStatusColor = (status) => {
     const map = {
@@ -104,25 +107,25 @@ const MyMediation = () => {
     (m) => isUserInGroup(m.plaintiffs) || isUserInGroup(m.defendants),
   );
 
-  const filtered =
-    filterStatus === "All Cases"
-      ? userMediations
-      : userMediations.filter((m) => getStatus(m) === filterStatus);
-
-  const sorted = [...filtered].sort((a, b) => {
-    switch (sortBy) {
-      case "Date":
-        return new Date(b.submissionDate) - new Date(a.submissionDate);
-      case "Value":
-        return (b.suitValue || 0) - (a.suitValue || 0);
-      case "Title":
-        return (a.caseTitle || "").localeCompare(b.caseTitle || "");
-      case "Status":
-        return getStatus(a).localeCompare(getStatus(b));
-      default:
-        return 0;
-    }
-  });
+  const filteredMediations = userMediations
+    .filter((m) => {
+      if (filter === "all") return true;
+      return getStatus(m) === filter;
+    })
+    .sort((a, b) => {
+      switch (currentSort) {
+        case "date":
+          return new Date(b.submissionDate) - new Date(a.submissionDate);
+        case "value":
+          return (b.suitValue || 0) - (a.suitValue || 0);
+        case "title":
+          return (a.caseTitle || "").localeCompare(b.caseTitle || "");
+        case "status":
+          return getStatus(a).localeCompare(getStatus(b));
+        default:
+          return 0;
+      }
+    });
 
   // ================= STATS =================
   const totalCases = userMediations.length;
@@ -141,7 +144,7 @@ const MyMediation = () => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
-          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          <p className={`text-2xl font-bold ${color} mb-1`}>{value}</p>
         </div>
         <div className="text-2xl opacity-80 group-hover:scale-110 transition-transform duration-300">
           {icon}
@@ -160,10 +163,10 @@ const MyMediation = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-6 shadow-lg">
             <FaHandshake className="text-2xl text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text">
             My Mediations
           </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
             Manage and track all your mediation cases with comprehensive
             overview and insights
           </p>
@@ -199,8 +202,8 @@ const MyMediation = () => {
 
         {/* FILTER + SORT */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6 mb-8">
-          <div className="flex flex-col lg:flex-row justify-between gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center space-x-3">
               <FaFilter className="text-gray-400 text-lg" />
               <h3 className="text-lg font-semibold text-gray-900">
                 Filter Cases
@@ -209,65 +212,101 @@ const MyMediation = () => {
 
             <div className="flex flex-wrap gap-2">
               {[
-                { key: "All Cases", icon: <FaCalendarCheck /> },
-                { key: "Pending", icon: <FaRegClock /> },
-                { key: "Ongoing", icon: <FaSpinner /> },
-                { key: "Completed", icon: <FaCheckCircle /> },
-                { key: "Cancelled", icon: <FaTimesCircle /> },
-              ].map(({ key, icon }) => (
+                {
+                  key: "all",
+                  label: "All Cases",
+                  color: "gray",
+                  icon: <FaCalendarCheck />,
+                },
+                {
+                  key: "Pending",
+                  label: "Pending",
+                  color: "yellow",
+                  icon: <FaRegClock />,
+                },
+                {
+                  key: "Ongoing",
+                  label: "Ongoing",
+                  color: "blue",
+                  icon: <FaSpinner />,
+                },
+                {
+                  key: "Completed",
+                  label: "Completed",
+                  color: "green",
+                  icon: <FaCheckCircle />,
+                },
+                {
+                  key: "Cancelled",
+                  label: "Cancelled",
+                  color: "red",
+                  icon: <FaTimesCircle />,
+                },
+              ].map(({ key, label, color, icon }) => (
                 <button
                   key={key}
-                  onClick={() => setFilterStatus(key)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-300 ${
-                    filterStatus === key
-                      ? "bg-gray-700 text-white shadow-lg"
-                      : "bg-white text-gray-700 border border-gray-300"
+                  onClick={() => setFilter(key)}
+                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${
+                    filter === key
+                      ? `bg-${color}-600 text-white shadow-lg shadow-${color}-200`
+                      : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400 shadow-sm hover:shadow-md"
                   }`}
                 >
                   {icon}
-                  {key}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-200/60 flex justify-between items-center flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">
-                Sort by:
-              </span>
-              {["Date", "Value", "Title", "Status"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setSortBy(type)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    sortBy === type
-                      ? "bg-blue-100 text-blue-700 border border-blue-200"
-                      : "bg-gray-100 text-gray-700 border border-gray-200"
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-
-            <div className="text-sm text-gray-500">
-              Showing {sorted.length} of {totalCases} cases
+          {/* SORT */}
+          <div className="mt-6 pt-6 border-t border-gray-200/60">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-gray-700">
+                  Sort by:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {["date", "value", "title", "status"].map((sortType) => (
+                    <button
+                      key={sortType}
+                      onClick={() => setCurrentSort(sortType)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        currentSort === sortType
+                          ? "bg-blue-100 text-blue-700 border border-blue-200"
+                          : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                      }`}
+                    >
+                      {sortType.charAt(0).toUpperCase() + sortType.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="text-sm text-gray-500">
+                Showing {filteredMediations.length} of {totalCases} cases
+              </div>
             </div>
           </div>
         </div>
 
         {/* CARDS */}
-        {sorted.length === 0 ? (
-          <div className="text-center py-16 bg-white/80 rounded-2xl shadow-sm border">
-            <FaFolderOpen className="text-3xl text-gray-400 mx-auto mb-4" />
+        {filteredMediations.length === 0 ? (
+          <div className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <FaFolderOpen className="text-3xl text-gray-400" />
+            </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               No mediation cases found
             </h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              {filter === "all"
+                ? "You don't have any mediation cases yet. Start by filing your first case."
+                : `No ${filter.toLowerCase()} mediation cases match your current filter.`}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sorted.map((m) => {
+            {filteredMediations.map((m) => {
               const status = getStatus(m);
               return (
                 <div
@@ -276,11 +315,9 @@ const MyMediation = () => {
                   className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer group"
                 >
                   <div className="p-6">
-                    <div className="flex justify-between mb-4">
+                    <div className="flex justify-between items-start mb-4">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          status,
-                        )} gap-1`}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(status)} gap-1`}
                       >
                         {getStatusIcon(status)}
                         {status}
@@ -290,35 +327,47 @@ const MyMediation = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-semibold mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
                       {m.caseTitle}
                     </h3>
 
-                    <p className="text-gray-600 text-sm mb-4">
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                       {m.disputeNature}
                     </p>
 
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Suit Value:</span>
-                        <span className="text-green-600 font-bold">
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">
+                          Suit Value:
+                        </span>
+                        <span className="text-lg font-bold text-green-600">
                           BDT {(m.suitValue || 0).toLocaleString()}
                         </span>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span>Fee:</span>
-                        <span className="text-blue-600">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Fee:</span>
+                        <span className="text-sm font-medium text-blue-600">
                           BDT {m.processingFee}
                         </span>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span>Your Role:</span>
-                        <span className="font-medium">{getRole(m)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">
+                          Your Role:
+                        </span>
+                        <span
+                          className={`text-sm font-medium ${
+                            getRole(m) === "Plaintiff"
+                              ? "text-purple-600"
+                              : "text-emerald-600"
+                          }`}
+                        >
+                          {getRole(m)}
+                        </span>
                       </div>
 
-                      <div className="flex justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>
                           Plaintiffs: {Object.keys(m.plaintiffs || {}).length}
                         </span>
@@ -328,9 +377,9 @@ const MyMediation = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-between pt-4 mt-4 border-t text-xs text-gray-500">
-                      <span>Filed:</span>
-                      <span>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <span className="text-sm text-gray-500">Filed:</span>
+                      <span className="text-sm font-medium text-gray-600">
                         {new Date(m.submissionDate).toLocaleDateString()}
                       </span>
                     </div>
