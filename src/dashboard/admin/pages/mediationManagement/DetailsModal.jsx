@@ -40,10 +40,10 @@ const DetailsModal = ({ mediation, onClose, formatDate }) => {
                                 </div>
                                 <div>
                                     <label className="text-sm text-gray-500">
-                                        Arbitration ID
+                                        Mediation ID
                                     </label>
                                     <p className="font-medium text-gray-800">
-                                        {mediation.arbitrationId}
+                                        {mediation.mediationId}
                                     </p>
                                 </div>
                                 <div>
@@ -387,13 +387,13 @@ const DetailsModal = ({ mediation, onClose, formatDate }) => {
                                         Status
                                     </label>
                                     <p className={`font-medium ${
-                                        mediation.arbitration_status === "Completed" 
+                                        mediation.mediation_status === "completed" 
                                             ? "text-green-600" 
-                                            : mediation.arbitration_status === "Pending"
+                                            : mediation.mediation_status === "pending"
                                             ? "text-yellow-600"
                                             : "text-blue-600"
                                     }`}>
-                                        {mediation.arbitration_status || "Pending"}
+                                        {mediation.mediation_status || "pending"}
                                     </p>
                                 </div>
                                 <div>

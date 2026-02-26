@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import SessionModal from "./SessionModal";
 
 const AdminMediationDetails = () => {
@@ -130,7 +130,7 @@ const AdminMediationDetails = () => {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              {getStatusBadge(mediation.arbitration_status)}
+              {getStatusBadge(mediation.mediation_status)}
               {getPaymentBadge(mediation.payment_status)}
             </div>
           </div>
@@ -162,10 +162,10 @@ const AdminMediationDetails = () => {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500 block mb-1">
-                  Arbitration ID
+                  Mediation ID
                 </label>
                 <p className="text-gray-800 font-mono">
-                  {mediation.arbitrationId}
+                  {mediation.mediationId}
                 </p>
               </div>
               <div>
@@ -230,7 +230,7 @@ const AdminMediationDetails = () => {
               Quick Actions
             </h2>
             <div className="space-y-3">
-              {!mediation?.sessionData && (
+              {!mediation?.sessions && (
                 <button
                   onClick={() => openSessionModal(mediation)}
                   className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
@@ -238,7 +238,7 @@ const AdminMediationDetails = () => {
                   Schedule Session
                 </button>
               )}
-              {mediation?.sessionData && (
+              {mediation?.sessions && (
                 <button
                   onClick={() => openSessionModal(mediation)}
                   className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
@@ -246,8 +246,7 @@ const AdminMediationDetails = () => {
                   Update Session
                 </button>
               )}
-
-              {mediation.arbitration_status === "Pending" && (
+              {mediation.mediation_status === "pending" && (
                 <button
                   onClick={() =>
                     navigate(`/admin/mediations/${mediation._id}/cancel`, {
@@ -259,7 +258,7 @@ const AdminMediationDetails = () => {
                   Cancel Case
                 </button>
               )}
-              {mediation.arbitration_status === "Pending" && (
+              {mediation.mediation_status === "ongoing" && (
                 <button
                   onClick={() =>
                     navigate(`/admin/mediation-agreement/${mediation._id}`, {

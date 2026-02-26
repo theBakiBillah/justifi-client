@@ -44,7 +44,7 @@ const MediationCard = ({
           <h3 className="text-lg font-semibold text-gray-800 line-clamp-2">
             {mediation.caseTitle}
           </h3>
-          {getStatusBadge(mediation.arbitration_status)}
+          {getStatusBadge(mediation.mediation_status)}
         </div>
         <div className="flex items-center justify-between text-sm text-gray-500">
           <span>📅 {formatDate(mediation.submissionDate)}</span>
@@ -116,28 +116,28 @@ const MediationCard = ({
               </div>
             </div>
 
-            {/* Arbitrators Section */}
+            {/* Mediators Section */}
             <div className="pt-2 border-t border-gray-100">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-                Arbitrators
+                Mediators
               </label>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Presiding:</span>
                   <span className="font-medium text-gray-800">
-                    {mediation.presidingArbitrator || "Not assigned"}
+                    {mediation.presidingMediator || "Not assigned"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Arbitrator 1:</span>
+                  <span className="text-gray-600">Mediator 1:</span>
                   <span className="font-medium text-gray-800">
-                    {mediation.arbitrator1 || "Not assigned"}
+                    {mediation.mediator1 || "Not assigned"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Arbitrator 2:</span>
+                  <span className="text-gray-600">Mediator 2:</span>
                   <span className="font-medium text-gray-800">
-                    {mediation.arbitrator2 || "Not assigned"}
+                    {mediation.mediator2 || "Not assigned"}
                   </span>
                 </div>
               </div>
@@ -199,7 +199,7 @@ const MediationCard = ({
             >
               View Details
             </button>
-            {!mediation.sessionData && (
+            {!mediation.sessions && (
               <button
                 onClick={() => onCreateSession(mediation)}
                 className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"

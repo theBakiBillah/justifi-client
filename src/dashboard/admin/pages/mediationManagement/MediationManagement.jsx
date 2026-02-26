@@ -45,7 +45,7 @@ const MediationManagement = () => {
     const filteredMediations = allMediations.filter((mediation) => {
         const statusMatch =
             statusFilter === "All" ||
-            mediation.arbitration_status === statusFilter;
+            mediation.mediation_staus === statusFilter;
         
         const paymentMatch =
             paymentFilter === "All" ||
@@ -85,7 +85,7 @@ const MediationManagement = () => {
                     <p className="text-2xl font-bold text-yellow-600">
                         {
                             allMediations.filter(
-                                (item) => item.arbitration_status === "Pending"
+                                (item) => item.mediation_status === "pending"
                             ).length
                         }
                     </p>
@@ -97,7 +97,7 @@ const MediationManagement = () => {
                     <p className="text-2xl font-bold text-green-600">
                         {
                             allMediations.filter(
-                                (item) => item.arbitration_status === "Completed"
+                                (item) => item.mediation_status === "completed"
                             ).length
                         }
                     </p>
