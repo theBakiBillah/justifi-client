@@ -1,4 +1,4 @@
-import { FaVideo } from "react-icons/fa";
+import { FaMoneyBillWave, FaVideo } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAxiosPublic from "../../../hooks/useAxiosPublic";
@@ -51,6 +51,19 @@ const Arb_HearingSection = ({ arbitrationId }) => {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mb-10">
+       <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mt-2 ml-2"
+                   style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%)" }}>
+                   <FaVideo className="text-white " />
+                 </div>
+                 <div>
+                   <h2 className="text-xl font-bold text-gray-900">Hearing Management</h2>
+                   <p className="text-sm text-gray-500">
+                   </p>
+                 </div>
+                 
+              
+               </div>
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-purple-50">
           <tr>

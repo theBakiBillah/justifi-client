@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useArbData from "../../../../hooks/useArbData";
 import ArbitrationCard from "./ArbitrationCard";
 import SessionModal from "./SessionModal";
+import GlobalPendingApprovals from "../../components/GlobalPendingApprovals";
 
 const ArbitrationsManagement = () => {
     const { allArbitrations, refetchArbitrations } = useArbData();
@@ -57,6 +58,9 @@ const ArbitrationsManagement = () => {
             <p className="text-gray-600 mb-6">
                 Manage and monitor all arbitration cases
             </p>
+
+              {/* ✅ এটা Statistics Cards এর আগে add করো */}
+            <GlobalPendingApprovals allArbitrations={allArbitrations} />
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
