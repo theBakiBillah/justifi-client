@@ -10,7 +10,7 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
   const axiosSecure = useAxiosSecure();
-  console.log(formData); 
+
   useEffect(() => {
     if (formData && pdfContainerRef.current) {
       generatePDFContent();
@@ -940,10 +940,9 @@ const ArbAgreementPreview = ({ formData, onBack, pdfContainerRef, caseId }) => {
 
       const formPayload = new FormData();
       formPayload.append("file", file, fileName);
-      formPayload.append("arbitrationId", caseId || "");
       formPayload.append("caseId", caseId || "");
       formPayload.append("role", "admin");
-
+      console.log("paisiiiiii",caseId); 
       // axiosSecure likely sets Content-Type: application/json globally.
       // We MUST remove it so axios auto-sets multipart/form-data with the
       // correct boundary — without the boundary multer sees no file at all.

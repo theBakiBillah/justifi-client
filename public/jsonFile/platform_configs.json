@@ -1,0 +1,76 @@
+{
+  "_id": "ObjectId",
+  "configId": "CFG-GLOBAL-001",
+  "arbitrationId": null,
+
+  "platformFeePercentage": 20,
+
+  "arbitratorSplit": {
+    "presidingArbitrator": 50,
+    "arbitrator1": 25,
+    "arbitrator2": 25
+  },
+
+  "isGlobal": true,
+  "isActive": true,
+  "createdBy": "admin@justifi.com",
+  "updatedAt": "2026-02-20T00:00:00.000Z"
+}
+```
+
+---
+
+## 🔄 Complete Flow একনজরে
+```
+1. Case Create + Processing Fee paid by Plaintiff
+        ↓
+2. Admin case accept করে
+        ↓
+3. Admin "Payment Plan" create করে
+   (total cost, কয়টা installment, প্রতিটার due date)
+        ↓
+4. System auto-calculate করে:
+   প্রতিটা installment এ plaintiff কত + defendant কত (50/50)
+        ↓
+5. Plaintiff & Defendant dashboard এ দেখতে পায়:
+   "Installment 1 — ৳1500 — Due: 25 Feb — [Pay Now]"
+        ↓
+6. User pay করে (bKash/Card)
+   → payments collection এ record তৈরি
+   → installment এর partyPayments এ status: "paid" update
+        ↓
+7. Admin panel এ notification আসে: "New Payment Pending Approval"
+        ↓
+8. Admin approve করে
+        ↓
+9. System auto-calculate:
+   - Platform cut বাদ দেয়
+   - বাকি amount arbitrators এ split করে
+   → distributions collection এ record তৈরি
+        ↓
+10. Arbitrators তাদের dashboard এ earnings দেখতে পায়
+```
+
+---
+
+## 📊 User Dashboard এ কী দেখাবে
+
+**Plaintiff/Defendant এর জন্য:**
+```
+Payment Plan — ARB-6996F-51084196
+
+✅ Installment 1 — ৳1500 — Paid on 22 Feb
+⏳ Installment 2 — ৳2000 — Due: 10 Mar  [Pay Now]
+🔒 Installment 3 — ৳1500 — Due: 25 Mar
+
+Total Paid: ৳1500 / ৳5000
+```
+
+**Admin Panel এ:**
+```
+Pending Approvals:
+→ PAY-001 | Plaintiff | ৳1500 | bKash | [Approve] [Reject]
+
+Installment 1 Status:
+→ Plaintiff: ✅ Paid
+→ Defendant: ❌ Unpaid (Overdue)

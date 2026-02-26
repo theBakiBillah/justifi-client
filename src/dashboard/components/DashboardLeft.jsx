@@ -13,7 +13,9 @@ import {
     FaMoneyBillWave, 
     FaBell,
     FaChevronLeft,
-    FaChevronRight
+    FaChevronRight,
+    FaClock
+
 } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Loading from "../../common/loading/Loading";
@@ -29,6 +31,7 @@ const DashboardLeft = () => {
     const toggleSidebar = () => {
         setIsCollapsed(!isCollapsed);
     };
+
 
     // Redirect from /dashboard to appropriate profile
     useEffect(() => {
@@ -48,6 +51,58 @@ const DashboardLeft = () => {
         }
     }, [location.pathname, userRole, navigate, currentUser?.email]);
 
+  const userLinks = [
+    {
+      name: "Profile",
+      path: "/dashboard/user-profile",
+      icon: <FaDashcube className="text-lg" />,
+    },
+    {
+      name: "My Appointments",
+      path: "/dashboard/my-appointments",
+      icon: <FaGavel className="text-lg" />,
+    },
+    {
+      name: "My Arbitrations",
+      path: "/dashboard/my-arbitrations",
+      icon: <FaBalanceScale className="text-lg" />,
+    },
+    {
+      name: "My Mediations",
+      path: "/dashboard/my-mediations",
+      icon: <FaHandshake className="text-lg" />,
+    },
+    {
+      name: "Finance",
+      path: "/dashboard/UserFinance",
+      icon: <FaMoneyBillWave className="text-lg" />,
+    },
+  ];
+
+  const lawyerLinks = [
+    {
+      name: "Profile",
+      path: `/dashboard/lawyer-profile/${currentUser?.email}`,
+      icon: <FaUser className="text-lg" />,
+    },
+    {
+      name: "Appointments",
+      path: "/dashboard/appointments",
+      icon: <FaGavel className="text-lg" />,
+    },
+    {
+      name: "Time Slots",
+      path: `/dashboard/my-time-slots/${currentUser?.email}`,
+      icon: <FaClock className="text-lg" />,
+    },
+    {
+      name: "Arbitrations",
+      path: "/dashboard/lawyer-arbitrations",
+      icon: <FaBalanceScale className="text-lg" />,
+    },
+  ];
+
+
     const getRoleDisplayName = (role) => {
         const roleMap = {
             user: "User",
@@ -59,41 +114,9 @@ const DashboardLeft = () => {
         return roleMap[role] || "User";
     };
 
-    const userLinks = [
-        {
-            name: "Profile",
-            path: "/dashboard/user-profile",
-            icon: <FaDashcube className="text-lg" />,
-        },
-        {
-            name: "My Appointments",
-            path: "/dashboard/my-appointments",
-            icon: <FaGavel className="text-lg" />,
-        },
-        {
-            name: "My Arbitrations",
-            path: "/dashboard/my-arbitrations",
-            icon: <FaBalanceScale className="text-lg" />,
-        },
-    ];
+    
 
-    const lawyerLinks = [
-        {
-            name: "Profile",
-            path: `/dashboard/lawyer-profile/${currentUser?.email}`,
-            icon: <FaUser className="text-lg" />,
-        },
-        {
-            name: "Appointments",
-            path: "/dashboard/appointments",
-            icon: <FaGavel className="text-lg" />,
-        },
-        {
-            name: "Arbitrations",
-            path: "/dashboard/arbitrations",
-            icon: <FaBalanceScale className="text-lg" />,
-        },
-    ];
+   
 
     const arbitratorLinks = [
         {

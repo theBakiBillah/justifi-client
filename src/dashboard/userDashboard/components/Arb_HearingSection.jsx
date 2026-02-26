@@ -50,7 +50,7 @@ const Arb_HearingSection = ({ arbitrationId }) => {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mb-10">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-purple-50">
           <tr>

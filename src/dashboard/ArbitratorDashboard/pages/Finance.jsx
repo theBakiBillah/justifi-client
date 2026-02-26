@@ -1,846 +1,505 @@
-import React, { useState, useEffect } from 'react';
-import { 
-    FaMoneyBillWave, 
+import React, { useState, useMemo } from 'react';
+import {
+    FaMoneyBillWave,
     FaSearch,
-    FaChevronLeft,
-    FaChevronRight,
-    FaPlus,
-    FaCreditCard,
-    FaUser,
-    FaMobileAlt,
-    FaTimes
+    FaWallet,
+    FaCheckCircle,
+    FaFilter,
+    FaTimes,
+    FaChevronDown,
+    FaGavel,
+    FaCalendarAlt,
+    FaSpinner,
+    FaSortAmountDown,
+    FaSortAmountUp,
+    FaChartLine,
 } from 'react-icons/fa';
+import { useQuery } from '@tanstack/react-query';
+import useAxiosSecure from '../../../hooks/useAxiosSecure';
+import useUserData from '../../../hooks/useUserData';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const formatCurrency = (v) => `৳ ${Number(v || 0).toLocaleString('en-BD')}`;
+const formatDate = (d) =>
+    d ? new Date(d).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric'
+    }) : '—';
+const formatTime = (d) =>
+    d ? new Date(d).toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit'
+    }) : '';
+
+const ROLE_LABEL = {
+    presidingArbitrator: 'Presiding Arbitrator',
+    arbitrator1: 'Arbitrator 1',
+    arbitrator2: 'Arbitrator 2',
+};
+
+// ── Summary Card ──────────────────────────────────────────────────────────────
+const SummaryCard = ({ label, value, icon: Icon, gradient, sub }) => (
+    <div className={`rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+        <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10" />
+        <div className="absolute -right-2 -bottom-6 w-28 h-28 rounded-full bg-white/5" />
+        <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-white/70 text-xs font-medium uppercase tracking-wider">{label}</p>
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Icon className="text-white text-base" />
+                </div>
+            </div>
+            <p className="text-2xl font-bold mb-1">{value}</p>
+            {sub && <p className="text-white/60 text-xs">{sub}</p>}
+        </div>
+    </div>
+);
+
+// ── Filter Bar ────────────────────────────────────────────────────────────────
+const FilterBar = ({ filters, setFilters, onReset, hasActive }) => {
+    const [showDateRange, setShowDateRange] = useState(false);
+
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+            <div className="flex flex-wrap gap-3 items-center">
+
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px]">
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input
+                        type="text"
+                        placeholder="Search by arbitration ID, case, payer..."
+                        value={filters.search}
+                        onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+                        className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                    />
+                    {filters.search && (
+                        <button onClick={() => setFilters(f => ({ ...f, search: '' }))}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <FaTimes className="text-xs" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Amount Range */}
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">৳</span>
+                        <input
+                            type="number"
+                            placeholder="Min amount"
+                            value={filters.minAmount}
+                            onChange={(e) => setFilters(f => ({ ...f, minAmount: e.target.value }))}
+                            className="pl-7 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-32"
+                        />
+                    </div>
+                    <span className="text-gray-400 text-xs">—</span>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">৳</span>
+                        <input
+                            type="number"
+                            placeholder="Max amount"
+                            value={filters.maxAmount}
+                            onChange={(e) => setFilters(f => ({ ...f, maxAmount: e.target.value }))}
+                            className="pl-7 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-32"
+                        />
+                    </div>
+                </div>
+
+                {/* Date Range */}
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <FaCalendarAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                        <input
+                            type="date"
+                            value={filters.dateFrom}
+                            onChange={(e) => setFilters(f => ({ ...f, dateFrom: e.target.value }))}
+                            className="pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        />
+                    </div>
+                    <span className="text-gray-400 text-xs">—</span>
+                    <input
+                        type="date"
+                        value={filters.dateTo}
+                        onChange={(e) => setFilters(f => ({ ...f, dateTo: e.target.value }))}
+                        className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                </div>
+
+                {/* Reset */}
+                {hasActive && (
+                    <button onClick={onReset}
+                        className="flex items-center gap-1.5 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-100 transition border border-red-200">
+                        <FaTimes className="text-xs" /> Clear
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const Finance = () => {
-    const [cards, setCards] = useState([
-        {
-            id: 'CARD-001',
-            cardName: 'Main Card',
-            cardNumber: '1234 5678 9012 3456',
-            bankName: 'Bank XKDX',
-            cardHolder: 'Bittu ✅',
-            validThru: '04/26'
-        },
-        {
-            id: 'CARD-002',
-            cardName: 'Secondary Card',
-            cardNumber: '9876 5432 1098 7654',
-            bankName: 'Bank ABC',
-            cardHolder: 'Bittu ✅',
-            validThru: '12/25'
-        },
-        {
-            id: 'CARD-003',
-            cardName: 'Backup Card',
-            cardNumber: '4567 8912 3456 7890',
-            bankName: 'Bank XYZ',
-            cardHolder: 'Bittu ✅',
-            validThru: '08/27'
-        }
-    ]);
+    const { currentUser } = useUserData();
+    const axiosSecure = useAxiosSecure();
+    const userEmail = currentUser?.email;
 
-    const [mobileBankingAccounts, setMobileBankingAccounts] = useState([
-        {
-            id: 'MOBILE-001',
-            phoneNumber: '01712345678',
-            bankingType: 'bikash',
-            providerName: 'bKash',
-            accountName: 'Primary bKash'
-        },
-        {
-            id: 'MOBILE-002',
-            phoneNumber: '01898765432',
-            bankingType: 'nagad',
-            providerName: 'Nagad',
-            accountName: 'Nagad Account'
-        },
-        {
-            id: 'MOBILE-003',
-            phoneNumber: '01911223344',
-            bankingType: 'rocket',
-            providerName: 'Rocket',
-            accountName: 'DBBL Rocket'
-        }
-    ]);
-
-    const [transactions] = useState([
-        {
-            id: 'TXN-001',
-            customerName: 'John Smith',
-            paymentGateway: 'Stripe',
-            dateTime: '2024-12-10T14:30:00',
-            value: 50000,
-            caseId: 'ARB-001'
-        },
-        {
-            id: 'TXN-002',
-            customerName: 'Sarah Johnson',
-            paymentGateway: 'PayPal',
-            dateTime: '2024-12-10T11:15:00',
-            value: 75000,
-            caseId: 'ARB-002'
-        },
-        {
-            id: 'TXN-003',
-            customerName: 'Michael Chen',
-            paymentGateway: 'Bank Transfer',
-            dateTime: '2024-12-09T16:45:00',
-            value: 60000,
-            caseId: 'ARB-003'
-        },
-        {
-            id: 'TXN-004',
-            customerName: 'Tech Solutions Inc.',
-            paymentGateway: 'Stripe',
-            dateTime: '2024-12-09T10:20:00',
-            value: 30000,
-            caseId: 'ARB-004'
-        }
-    ]);
-
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filteredTransactions, setFilteredTransactions] = useState([]);
-    const [currentCardIndex, setCurrentCardIndex] = useState(0);
-    const [currentMobileIndex, setCurrentMobileIndex] = useState(0);
-    const [showMobileBanking, setShowMobileBanking] = useState(false);
-    const [showAddCard, setShowAddCard] = useState(false);
-    const [mobileBankingForm, setMobileBankingForm] = useState({
-        phoneNumber: '',
-        bankingType: '',
-        accountName: ''
+    const [filters, setFilters] = useState({
+        search: '',
+        minAmount: '',
+        maxAmount: '',
+        dateFrom: '',
+        dateTo: '',
     });
-    const [addCardForm, setAddCardForm] = useState({
-        cardName: '',
-        cardNumber: '',
-        bankName: '',
-        cardHolder: '',
-        validThru: ''
+    const [sortField, setSortField] = useState('distributedAt');
+    const [sortDir, setSortDir] = useState('desc');
+
+    // ── Fetch all distributions where this arbitrator has a share ─────────────
+    const { data: allDistributions = [], isLoading, error, refetch } = useQuery({
+        queryKey: ['myAllEarnings', userEmail],
+        queryFn: async () => {
+            // Fetch all distributions across all arbitrations for this arbitrator
+            const res = await axiosSecure.get(`/payment-plans/distributions/arbitrator/me`);
+            return res.data.success ? res.data.data : [];
+        },
+        enabled: !!userEmail,
+        refetchOnWindowFocus: false,
     });
 
-    useEffect(() => {
-        filterTransactions();
-    }, [searchTerm, transactions]);
+    // Each row = one distribution entry where this arbitrator has a share
+    // Flatten: per distribution, find myShare, attach arbitrationId etc.
+    const myEarnings = useMemo(() => {
+        return allDistributions.map(dist => {
+            const myShare = dist.arbitratorShares?.find(s => s.email === userEmail);
+            if (!myShare) return null;
+            return {
+                distributionId: dist.distributionId,
+                arbitrationId: dist.arbitrationId,
+                installmentId: dist.installmentId,
+                paymentId: dist.paymentId,
+                totalCollected: dist.totalCollected,
+                platformCut: dist.platformCut?.amount || 0,
+                distributableAmount: dist.distributableAmount,
+                myRole: myShare.role,
+                myAmount: myShare.amount,
+                myPct: myShare.sharePercentage,
+                status: myShare.status,
+                paidAt: myShare.paidAt,
+                distributedAt: dist.distributedAt,
+                distributedBy: dist.distributedBy,
+                allShares: dist.arbitratorShares,
+            };
+        }).filter(Boolean);
+    }, [allDistributions, userEmail]);
 
-    const filterTransactions = () => {
-        let filtered = transactions.filter(transaction => {
-            const matchesSearch = 
-                transaction.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                transaction.paymentGateway.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                transaction.caseId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                transaction.value.toString().includes(searchTerm) ||
-                new Date(transaction.dateTime).toLocaleDateString().toLowerCase().includes(searchTerm.toLowerCase());
-            return matchesSearch;
+    // ── Summary Stats ─────────────────────────────────────────────────────────
+    const stats = useMemo(() => {
+        const totalEarned = myEarnings.reduce((s, r) => s + r.myAmount, 0);
+        const totalReceived = myEarnings.filter(r => r.status === 'paid').reduce((s, r) => s + r.myAmount, 0);
+        const uniqueCases = new Set(myEarnings.map(r => r.arbitrationId)).size;
+        return { totalEarned, totalReceived, uniqueCases, count: myEarnings.length };
+    }, [myEarnings]);
+
+    // ── Filter + Sort ─────────────────────────────────────────────────────────
+    const filtered = useMemo(() => {
+        let rows = [...myEarnings];
+
+        if (filters.search) {
+            const q = filters.search.toLowerCase();
+            rows = rows.filter(r =>
+                r.arbitrationId?.toLowerCase().includes(q) ||
+                r.distributionId?.toLowerCase().includes(q) ||
+                r.installmentId?.toLowerCase().includes(q) ||
+                r.paymentId?.toLowerCase().includes(q) ||
+                ROLE_LABEL[r.myRole]?.toLowerCase().includes(q)
+            );
+        }
+        if (filters.minAmount) {
+            rows = rows.filter(r => r.myAmount >= Number(filters.minAmount));
+        }
+        if (filters.maxAmount) {
+            rows = rows.filter(r => r.myAmount <= Number(filters.maxAmount));
+        }
+        if (filters.dateFrom) {
+            rows = rows.filter(r => new Date(r.distributedAt) >= new Date(filters.dateFrom));
+        }
+        if (filters.dateTo) {
+            rows = rows.filter(r => new Date(r.distributedAt) <= new Date(filters.dateTo + 'T23:59:59'));
+        }
+
+        // Sort
+        rows.sort((a, b) => {
+            let va = a[sortField], vb = b[sortField];
+            if (typeof va === 'string') va = va.toLowerCase();
+            if (typeof vb === 'string') vb = vb.toLowerCase();
+            if (va < vb) return sortDir === 'asc' ? -1 : 1;
+            if (va > vb) return sortDir === 'asc' ? 1 : -1;
+            return 0;
         });
 
-        filtered.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
-        setFilteredTransactions(filtered);
+        return rows;
+    }, [myEarnings, filters, sortField, sortDir]);
+
+    const hasActiveFilters = filters.search || filters.minAmount || filters.maxAmount || filters.dateFrom || filters.dateTo;
+
+    const resetFilters = () => setFilters({ search: '', minAmount: '', maxAmount: '', dateFrom: '', dateTo: '' });
+
+    const toggleSort = (field) => {
+        if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortField(field); setSortDir('desc'); }
     };
 
-    const handleSearchChange = (e) => {
-        setSearchTerm(e.target.value);
+    const SortIcon = ({ field }) => {
+        if (sortField !== field) return <FaSortAmountDown className="text-gray-300 text-xs" />;
+        return sortDir === 'asc'
+            ? <FaSortAmountUp className="text-indigo-500 text-xs" />
+            : <FaSortAmountDown className="text-indigo-500 text-xs" />;
     };
 
-    const handleMobileBankingChange = (e) => {
-        const { name, value } = e.target;
-        setMobileBankingForm(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleAddCardChange = (e) => {
-        const { name, value } = e.target;
-        setAddCardForm(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleMobileBankingSubmit = (e) => {
-        e.preventDefault();
-        
-        // Generate provider name based on banking type
-        const providerNames = {
-            bikash: 'bKash',
-            nagad: 'Nagad',
-            rocket: 'Rocket',
-            upay: 'Upay',
-            tap: 'Tap'
-        };
-
-        const newAccount = {
-            id: `MOBILE-${String(mobileBankingAccounts.length + 1).padStart(3, '0')}`,
-            phoneNumber: mobileBankingForm.phoneNumber,
-            bankingType: mobileBankingForm.bankingType,
-            providerName: providerNames[mobileBankingForm.bankingType] || mobileBankingForm.bankingType,
-            accountName: mobileBankingForm.accountName || `${providerNames[mobileBankingForm.bankingType]} Account`
-        };
-        
-        // Add new mobile banking account
-        setMobileBankingAccounts(prev => [...prev, newAccount]);
-        
-        // Reset form and close modal
-        setMobileBankingForm({ phoneNumber: '', bankingType: '', accountName: '' });
-        setShowMobileBanking(false);
-        
-        // Set the new account as current
-        setCurrentMobileIndex(mobileBankingAccounts.length);
-    };
-
-    const handleAddCardSubmit = (e) => {
-        e.preventDefault();
-        // Generate new card ID
-        const newCard = {
-            id: `CARD-${String(cards.length + 1).padStart(3, '0')}`,
-            ...addCardForm
-        };
-        
-        // Add new card to the cards array
-        setCards(prev => [...prev, newCard]);
-        
-        // Reset form and close modal
-        setAddCardForm({
-            cardName: '',
-            cardNumber: '',
-            bankName: '',
-            cardHolder: '',
-            validThru: ''
-        });
-        setShowAddCard(false);
-        
-        // Set the new card as current
-        setCurrentCardIndex(cards.length);
-    };
-
-    const nextCard = () => {
-        setCurrentCardIndex((prevIndex) => 
-            prevIndex === cards.length - 1 ? 0 : prevIndex + 1
-        );
-    };
-
-    const prevCard = () => {
-        setCurrentCardIndex((prevIndex) => 
-            prevIndex === 0 ? cards.length - 1 : prevIndex - 1
-        );
-    };
-
-    const nextMobile = () => {
-        setCurrentMobileIndex((prevIndex) => 
-            prevIndex === mobileBankingAccounts.length - 1 ? 0 : prevIndex + 1
-        );
-    };
-
-    const prevMobile = () => {
-        setCurrentMobileIndex((prevIndex) => 
-            prevIndex === 0 ? mobileBankingAccounts.length - 1 : prevIndex - 1
-        );
-    };
-
-    const formatCurrency = (amount) => {
-        return `BDT ${amount.toLocaleString()}`;
-    };
-
-    const getMobileBankingIcon = (type) => {
-        const icons = {
-            bikash: '🟠',
-            nagad: '🟢',
-            rocket: '🔵',
-            upay: '🟣',
-            tap: '🟡'
-        };
-        return icons[type] || '📱';
-    };
-
-    const getMobileBankingColor = (type) => {
-        const colors = {
-            bikash: 'from-orange-500 to-red-600',
-            nagad: 'from-green-500 to-emerald-600',
-            rocket: 'from-blue-500 to-cyan-600',
-            upay: 'from-purple-500 to-pink-600',
-            tap: 'from-yellow-500 to-amber-600'
-        };
-        return colors[type] || 'from-gray-500 to-gray-600';
-    };
-
-    const BankCard = ({ card }) => (
-        <div className="relative bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl p-3 text-white shadow-lg w-full max-w-[240px] mx-auto min-h-[140px]">
-            {/* Bank Name and Logo */}
-            <div className="flex justify-between items-start mb-2">
-                <div>
-                    <p className="text-[10px] opacity-80">Bank Name</p>
-                    <p className="font-bold text-xs">{card.bankName}</p>
-                </div>
-                <FaCreditCard className="text-sm opacity-80" />
-            </div>
-
-            {/* Card Number */}
-            <div className="mb-3">
-                <p className="text-[10px] opacity-80 mb-1">Card Number</p>
-                <p className="font-mono text-xs tracking-wider">{card.cardNumber}</p>
-            </div>
-
-            {/* Card Holder and Valid Thru */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <p className="text-[10px] opacity-80">Card Holder</p>
-                    <p className="font-semibold text-xs">{card.cardHolder}</p>
-                </div>
-                <div className="text-right">
-                    <p className="text-[10px] opacity-80">Valid Thru</p>
-                    <p className="font-semibold text-xs">{card.validThru}</p>
-                </div>
+    if (isLoading) return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-gray-500">
+                <FaSpinner className="animate-spin text-2xl text-indigo-600" />
+                <span className="font-medium">Loading earnings...</span>
             </div>
         </div>
     );
 
-    const MobileBankingCard = ({ account }) => (
-        <div className={`relative bg-gradient-to-br ${getMobileBankingColor(account.bankingType)} rounded-xl p-3 text-white shadow-lg w-full max-w-[240px] mx-auto min-h-[140px]`}>
-            {/* Provider Name and Logo */}
-            <div className="flex justify-between items-start mb-2">
-                <div>
-                    <p className="text-[10px] opacity-80">Provider</p>
-                    <p className="font-bold text-xs">{account.providerName}</p>
-                </div>
-                <div className="text-base">
-                    {getMobileBankingIcon(account.bankingType)}
-                </div>
-            </div>
-
-            {/* Account Name */}
-            <div className="mb-2">
-                <p className="text-[10px] opacity-80 mb-1">Account Name</p>
-                <p className="font-semibold text-xs">{account.accountName}</p>
-            </div>
-
-            {/* Phone Number */}
-            <div className="mb-3">
-                <p className="text-[10px] opacity-80 mb-1">Phone Number</p>
-                <p className="font-mono text-xs tracking-wider">{account.phoneNumber}</p>
-            </div>
-
-            {/* Status */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <p className="text-[10px] opacity-80">Status</p>
-                    <p className="font-semibold text-xs">Active ✅</p>
-                </div>
-                <div className="text-right">
-                    <p className="text-[10px] opacity-80">Type</p>
-                    <p className="font-semibold text-xs capitalize">{account.bankingType}</p>
-                </div>
+    if (error) return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 flex items-center justify-center">
+            <div className="text-center">
+                <p className="text-red-500 font-semibold mb-3">Failed to load earnings</p>
+                <button onClick={refetch} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold">
+                    Try Again
+                </button>
             </div>
         </div>
-    );
-
-    const AddCardButton = () => (
-        <button 
-            onClick={() => setShowAddCard(true)}
-            className="w-full max-w-[240px] mx-auto bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 hover:border-blue-400 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 text-gray-500 hover:text-blue-600 rounded-lg py-2 px-3 text-xs font-medium"
-        >
-            <FaPlus className="text-xs" />
-            <span>Add New Card</span>
-        </button>
-    );
-
-    const AddMobileBankingButton = () => (
-        <button 
-            onClick={() => setShowMobileBanking(true)}
-            className="w-full max-w-[240px] mx-auto bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-dashed border-gray-300 hover:border-green-400 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 text-gray-500 hover:text-green-600 rounded-lg py-2 px-3 text-xs font-medium"
-        >
-            <FaPlus className="text-xs" />
-            <span>Add Mobile Banking</span>
-        </button>
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 py-3">
-            <div className="max-w-7xl mx-auto px-2">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 py-6">
+            <div className="max-w-7xl mx-auto px-4">
+
                 {/* Header */}
-                <div className="text-center mb-4">
-                    <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm mb-2">
-                        <FaMoneyBillWave className="w-3 h-3 text-blue-600" />
-                        <span className="text-xs font-medium text-gray-600">
-                            Financial Dashboard
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg"
+                            style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%)' }}>
+                            <FaChartLine className="text-white text-base" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">My Earnings</h1>
+                            <p className="text-gray-400 text-sm">All arbitration payment distributions</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+                    <SummaryCard
+                        label="Total Earned"
+                        value={formatCurrency(stats.totalEarned)}
+                        icon={FaWallet}
+                        gradient="from-indigo-600 to-blue-700"
+                        sub={`${stats.count} payment${stats.count !== 1 ? 's' : ''} received`}
+                    />
+                    <SummaryCard
+                        label="Total Received"
+                        value={formatCurrency(stats.totalReceived)}
+                        icon={FaCheckCircle}
+                        gradient="from-emerald-500 to-teal-600"
+                        sub="admin approved & released"
+                    />
+                    <SummaryCard
+                        label="Cases Worked"
+                        value={stats.uniqueCases}
+                        icon={FaGavel}
+                        gradient="from-violet-600 to-purple-700"
+                        sub="unique arbitration cases"
+                    />
+                </div>
+
+                {/* Filter Bar */}
+                <FilterBar
+                    filters={filters}
+                    setFilters={setFilters}
+                    onReset={resetFilters}
+                    hasActive={hasActiveFilters}
+                />
+
+                {/* Table */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <FaMoneyBillWave className="text-indigo-500" />
+                            <h3 className="text-base font-bold text-gray-900">Payment History</h3>
+                        </div>
+                        <span className="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+                            {filtered.length} record{filtered.length !== 1 ? 's' : ''}
                         </span>
                     </div>
-                    <h1 className="text-lg md:text-xl font-bold mb-1 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        My Finance
-                    </h1>
-                    <p className="text-gray-600 text-xs">
-                        Manage your payments and transactions
-                    </p>
-                </div>
 
-                {/* Bank Cards & Mobile Banking Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                    {/* Bank Cards Section */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-white/20 min-h-[220px]">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3 text-center">Bank Cards</h3>
-                        
-                        <div className="flex items-center justify-center gap-1 mb-3">
-                            {/* Left Arrow */}
-                            <button 
-                                onClick={prevCard}
-                                className="w-6 h-6 bg-white rounded-full shadow flex items-center justify-center hover:bg-gray-50 transition-colors"
-                            >
-                                <FaChevronLeft className="text-gray-600 text-xs" />
-                            </button>
-
-                            {/* Current Card */}
-                            {cards.length > 0 ? (
-                                <BankCard card={cards[currentCardIndex]} />
-                            ) : (
-                                <div className="w-full max-w-[240px] mx-auto min-h-[140px] flex items-center justify-center">
-                                    <AddCardButton />
-                                </div>
-                            )}
-
-                            {/* Right Arrow */}
-                            <button 
-                                onClick={nextCard}
-                                className="w-6 h-6 bg-white rounded-full shadow flex items-center justify-center hover:bg-gray-50 transition-colors"
-                            >
-                                <FaChevronRight className="text-gray-600 text-xs" />
-                            </button>
-                        </div>
-
-                        {/* Card Indicator Dots */}
-                        {cards.length > 0 && (
-                            <div className="flex justify-center gap-1 mb-3">
-                                {cards.map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                                            index === currentCardIndex 
-                                                ? 'bg-blue-600 w-3' 
-                                                : 'bg-gray-300'
-                                        }`}
-                                    />
-                                ))}
+                    {filtered.length === 0 ? (
+                        <div className="text-center py-16">
+                            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                <FaMoneyBillWave className="text-2xl text-gray-300" />
                             </div>
-                        )}
-
-                        {/* Add Card Button */}
-                        <div className="flex justify-center">
-                            <AddCardButton />
-                        </div>
-                    </div>
-
-                    {/* Mobile Banking Section */}
-                    <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-white/20 min-h-[220px]">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3 text-center">Mobile Banking</h3>
-                        
-                        <div className="flex items-center justify-center gap-1 mb-3">
-                            {/* Left Arrow */}
-                            <button 
-                                onClick={prevMobile}
-                                className="w-6 h-6 bg-white rounded-full shadow flex items-center justify-center hover:bg-gray-50 transition-colors"
-                            >
-                                <FaChevronLeft className="text-gray-600 text-xs" />
-                            </button>
-
-                            {/* Current Mobile Banking */}
-                            {mobileBankingAccounts.length > 0 ? (
-                                <MobileBankingCard account={mobileBankingAccounts[currentMobileIndex]} />
-                            ) : (
-                                <div className="w-full max-w-[240px] mx-auto min-h-[140px] flex items-center justify-center">
-                                    <AddMobileBankingButton />
-                                </div>
-                            )}
-
-                            {/* Right Arrow */}
-                            <button 
-                                onClick={nextMobile}
-                                className="w-6 h-6 bg-white rounded-full shadow flex items-center justify-center hover:bg-gray-50 transition-colors"
-                            >
-                                <FaChevronRight className="text-gray-600 text-xs" />
-                            </button>
-                        </div>
-
-                        {/* Mobile Banking Indicator Dots */}
-                        {mobileBankingAccounts.length > 0 && (
-                            <div className="flex justify-center gap-1 mb-3">
-                                {mobileBankingAccounts.map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                                            index === currentMobileIndex 
-                                                ? 'bg-green-600 w-3' 
-                                                : 'bg-gray-300'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Add Mobile Banking Button */}
-                        <div className="flex justify-center">
-                            <AddMobileBankingButton />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Search Section */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-2 shadow-lg border border-white/20 mb-3">
-                    <div className="flex justify-center">
-                        <div className="w-full max-w-md">
-                            <div className="relative">
-                                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by date, amount, gateway..."
-                                    value={searchTerm}
-                                    onChange={handleSearchChange}
-                                    className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full bg-white shadow text-xs"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Add Card Modal */}
-                {showAddCard && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 z-50">
-                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4">
-                            {/* Header */}
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                                    <FaCreditCard className="text-blue-500" />
-                                    Add New Card
-                                </h3>
-                                <button
-                                    onClick={() => setShowAddCard(false)}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <FaTimes className="text-base" />
-                                </button>
-                            </div>
-
-                            {/* Form */}
-                            <form onSubmit={handleAddCardSubmit} className="space-y-3">
-                                {/* Card Name */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Card Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="cardName"
-                                        value={addCardForm.cardName}
-                                        onChange={handleAddCardChange}
-                                        placeholder="e.g., Main Card, Secondary Card"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Card Number */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Card Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="cardNumber"
-                                        value={addCardForm.cardNumber}
-                                        onChange={handleAddCardChange}
-                                        placeholder="1234 5678 9012 3456"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Bank Name */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Bank Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="bankName"
-                                        value={addCardForm.bankName}
-                                        onChange={handleAddCardChange}
-                                        placeholder="e.g., Bank XKDX, Bank ABC"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Card Holder */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Card Holder Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="cardHolder"
-                                        value={addCardForm.cardHolder}
-                                        onChange={handleAddCardChange}
-                                        placeholder="Enter card holder name"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Valid Thru */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Valid Thru (MM/YY)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="validThru"
-                                        value={addCardForm.validThru}
-                                        onChange={handleAddCardChange}
-                                        placeholder="MM/YY"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Buttons */}
-                                <div className="flex gap-2 pt-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAddCard(false)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 text-xs font-medium"
-                                    >
-                                        ADD CARD
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Mobile Banking Modal */}
-                {showMobileBanking && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 z-50">
-                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4">
-                            {/* Header */}
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                                    <FaMobileAlt className="text-green-500" />
-                                    Add Mobile Banking
-                                </h3>
-                                <button
-                                    onClick={() => setShowMobileBanking(false)}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <FaTimes className="text-base" />
-                                </button>
-                            </div>
-
-                            {/* Form */}
-                            <form onSubmit={handleMobileBankingSubmit} className="space-y-3">
-                                {/* Account Name */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Account Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="accountName"
-                                        value={mobileBankingForm.accountName}
-                                        onChange={handleMobileBankingChange}
-                                        placeholder="e.g., Primary bKash, Nagad Account"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Phone Number */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Phone Number
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        name="phoneNumber"
-                                        value={mobileBankingForm.phoneNumber}
-                                        onChange={handleMobileBankingChange}
-                                        placeholder="01XXXXXXXXX"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Banking Type */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Banking Type
-                                    </label>
-                                    <select
-                                        name="bankingType"
-                                        value={mobileBankingForm.bankingType}
-                                        onChange={handleMobileBankingChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs"
-                                        required
-                                    >
-                                        <option value="">Select Banking Type</option>
-                                        <option value="bikash">bKash</option>
-                                        <option value="nagad">Nagad</option>
-                                        <option value="rocket">Rocket</option>
-                                        <option value="upay">Upay</option>
-                                        <option value="tap">Tap</option>
-                                    </select>
-                                </div>
-
-                                {/* Buttons */}
-                                <div className="flex gap-2 pt-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowMobileBanking(false)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 text-xs font-medium"
-                                    >
-                                        ADD
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {/* Transactions Table */}
-                <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-900">Recent Transactions</h3>
-                    </div>
-                    
-                    {/* Desktop Table */}
-                    <div className="hidden md:block">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Customer
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Gateway
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date & Time
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Value
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredTransactions.map((transaction) => (
-                                    <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mr-2">
-                                                    <FaUser className="text-blue-600 text-xs" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-medium text-gray-900">
-                                                        {transaction.customerName}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {transaction.caseId}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                            <div className="text-xs text-gray-900">{transaction.paymentGateway}</div>
-                                        </td>
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                            <div className="text-xs text-gray-900">
-                                                {new Date(transaction.dateTime).toLocaleDateString()}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                {new Date(transaction.dateTime).toLocaleTimeString()}
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                            <div className="text-xs font-semibold text-green-600">
-                                                {formatCurrency(transaction.value)}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Mobile Cards */}
-                    <div className="md:hidden">
-                        {filteredTransactions.map((transaction) => (
-                            <div key={transaction.id} className="border-b border-gray-200 p-2 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center mb-1">
-                                    <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mr-2">
-                                        <FaUser className="text-blue-600 text-xs" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs font-medium text-gray-900">
-                                            {transaction.customerName}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                            {transaction.caseId}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                        <div className="text-gray-500">Gateway</div>
-                                        <div className="font-medium">{transaction.paymentGateway}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-gray-500">Date</div>
-                                        <div className="font-medium">
-                                            {new Date(transaction.dateTime).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-gray-500">Time</div>
-                                        <div className="font-medium">
-                                            {new Date(transaction.dateTime).toLocaleTimeString()}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="text-gray-500">Value</div>
-                                        <div className="font-semibold text-green-600">
-                                            {formatCurrency(transaction.value)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Empty State */}
-                    {filteredTransactions.length === 0 && (
-                        <div className="text-center py-6">
-                            <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl flex items-center justify-center mx-auto mb-2">
-                                <FaMoneyBillWave className="text-base text-blue-500" />
-                            </div>
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">
-                                No Transactions
-                            </h3>
-                            <p className="text-gray-600 text-xs">
-                                {searchTerm
-                                    ? "No transactions match your search."
-                                    : "No transactions found."}
+                            <p className="text-gray-500 font-semibold mb-1">
+                                {hasActiveFilters ? 'No results found' : 'No earnings yet'}
                             </p>
+                            <p className="text-gray-400 text-sm">
+                                {hasActiveFilters
+                                    ? 'Try adjusting your filters'
+                                    : 'Earnings will appear here once admin approves payments'}
+                            </p>
+                            {hasActiveFilters && (
+                                <button onClick={resetFilters}
+                                    className="mt-4 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition">
+                                    Clear Filters
+                                </button>
+                            )}
                         </div>
+                    ) : (
+                        <>
+                            {/* Desktop Table */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            {[
+                                                { label: 'Arbitration', field: 'arbitrationId' },
+                                                { label: 'Installment', field: 'installmentId' },
+                                                { label: 'My Role', field: 'myRole' },
+                                                { label: 'Total Collected', field: 'totalCollected' },
+                                                { label: 'My Share', field: 'myAmount' },
+                                                { label: 'Date', field: 'distributedAt' },
+                                                { label: 'Status', field: 'status' },
+                                            ].map(col => (
+                                                <th key={col.field}
+                                                    onClick={() => toggleSort(col.field)}
+                                                    className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition select-none">
+                                                    <div className="flex items-center gap-1.5">
+                                                        {col.label}
+                                                        <SortIcon field={col.field} />
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-100">
+                                        {filtered.map((row) => (
+                                            <tr key={row.distributionId} className="hover:bg-indigo-50/30 transition group">
+                                                {/* Arbitration ID */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {row.arbitrationId}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400 font-mono mt-0.5">
+                                                        {row.distributionId}
+                                                    </p>
+                                                </td>
+
+                                                {/* Installment */}
+                                                <td className="px-5 py-4">
+                                                    <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
+                                                        {row.installmentId}
+                                                    </span>
+                                                </td>
+
+                                                {/* Role */}
+                                                <td className="px-5 py-4">
+                                                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border ${
+                                                        row.myRole === 'presidingArbitrator'
+                                                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                                                            : row.myRole === 'arbitrator1'
+                                                                ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                                                : 'bg-violet-100 text-violet-700 border-violet-200'
+                                                    }`}>
+                                                        {ROLE_LABEL[row.myRole] || row.myRole}
+                                                    </span>
+                                                </td>
+
+                                                {/* Total Collected */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-sm font-semibold text-gray-800">
+                                                        {formatCurrency(row.totalCollected)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">
+                                                        Platform: {formatCurrency(row.platformCut)}
+                                                    </p>
+                                                </td>
+
+                                                {/* My Share */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-base font-bold text-indigo-700">
+                                                        {formatCurrency(row.myAmount)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">{row.myPct}% share</p>
+                                                </td>
+
+                                                {/* Date */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-sm text-gray-700">
+                                                        {formatDate(row.distributedAt)}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400">
+                                                        {formatTime(row.distributedAt)}
+                                                    </p>
+                                                </td>
+
+                                                {/* Status */}
+                                                <td className="px-5 py-4">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
+                                                        <FaCheckCircle className="text-xs" /> Received
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="md:hidden divide-y divide-gray-100">
+                                {filtered.map((row) => (
+                                    <div key={row.distributionId} className="p-4 hover:bg-gray-50 transition">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-900">{row.arbitrationId}</p>
+                                                <p className="text-xs text-gray-400 font-mono">{row.distributionId}</p>
+                                            </div>
+                                            <p className="text-base font-bold text-indigo-700">
+                                                {formatCurrency(row.myAmount)}
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Installment</p>
+                                                <p className="font-mono text-gray-700">{row.installmentId}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Role</p>
+                                                <p className="font-semibold text-gray-700">{ROLE_LABEL[row.myRole]}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Total Collected</p>
+                                                <p className="font-semibold text-gray-700">{formatCurrency(row.totalCollected)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Date</p>
+                                                <p className="text-gray-700">{formatDate(row.distributedAt)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                <FaCheckCircle className="text-xs" /> Received
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
+
             </div>
         </div>
     );

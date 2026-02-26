@@ -14,7 +14,7 @@ const MediationForm = ({ onSubmit, caseId }) => {
   const { data: mediationCases } = useQuery({
     queryKey: ["all-mediation"],
     queryFn: async () => {
-      const response = await axiosPublic.get("/all-mediation");
+      const response = await axiosPublic.get("/all-mediations");
       return response.data;
     },
   });
@@ -58,7 +58,7 @@ const MediationForm = ({ onSubmit, caseId }) => {
   useEffect(() => {
     if (mediationCases && mediationCases.length > 0 && caseId) {
       const foundCase = mediationCases.find(
-        (caseItem) => caseItem._id === caseId
+        (caseItem) => caseItem._id === caseId,
       );
 
       if (foundCase) {
@@ -74,7 +74,7 @@ const MediationForm = ({ onSubmit, caseId }) => {
             phone: plaintiff.phone || "",
             address: plaintiff.address || "",
             occupation: plaintiff.occupation || "",
-          })
+          }),
         );
 
         // Convert defendants object to array
@@ -87,7 +87,7 @@ const MediationForm = ({ onSubmit, caseId }) => {
             phone: defendant.phone || "",
             address: defendant.address || "",
             occupation: defendant.occupation || "",
-          })
+          }),
         );
 
         setPlaintiffs(plaintiffsArray);
@@ -159,16 +159,16 @@ const MediationForm = ({ onSubmit, caseId }) => {
   const updatePlaintiff = (id, field, value) => {
     setPlaintiffs((prev) =>
       prev.map((plaintiff) =>
-        plaintiff.id === id ? { ...plaintiff, [field]: value } : plaintiff
-      )
+        plaintiff.id === id ? { ...plaintiff, [field]: value } : plaintiff,
+      ),
     );
   };
 
   const updateDefendant = (id, field, value) => {
     setDefendants((prev) =>
       prev.map((defendant) =>
-        defendant.id === id ? { ...defendant, [field]: value } : defendant
-      )
+        defendant.id === id ? { ...defendant, [field]: value } : defendant,
+      ),
     );
   };
 

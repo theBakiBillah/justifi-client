@@ -20,7 +20,8 @@ import {
     FaCalendarTimes,
     FaSpinner,
     FaEye,
-    FaTrash
+    FaTrash,
+    FaUserCircle
 } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +30,9 @@ import Loading from '../../../common/loading/Loading';
 import useUserData from "../../../hooks/useUserData";
 import ArbitrationAgreement from '../components/ArbitrationAgreement';
 import PlaintifDefendantDocument from '../components/PlaintifDefendantDocument';
-
+import Arb_VerdictSection from '../components/Arb_VerdictSection' ; 
+import ArbitratorsPanel from '../../userDashboard/components/ArbitratorsPanel';
+import ArbitratorEarningsSection from '../components/ArbitratorEarningsSection ';
 // ── Error Boundary ────────────────────────────────────────────────────────────
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -227,7 +230,7 @@ const ArbitrationDetail = () => {
         switch (status?.toLowerCase()) {
             case 'pending':   return 'Pending Review';
             case 'ongoing':   return 'Proceedings Ongoing';
-            case 'completed': return 'Case Concluded';
+            case 'completed': return 'Case completed';
             case 'cancelled': return 'Case Cancelled';
             default:          return status || 'Unknown';
         }
@@ -326,7 +329,7 @@ const ArbitrationDetail = () => {
                         </div>
                     </div>
                 </div>
-
+                
                 {/* Agreement Details */}
                 <ArbitrationAgreement arbitration={arbitration} />
 
@@ -336,6 +339,7 @@ const ArbitrationDetail = () => {
                         <div className="w-1 h-8 bg-blue-600 rounded-full mr-3"></div>
                         <h2 className="text-2xl font-bold text-gray-900">Arbitrators Panel</h2>
                     </div>
+                     <ArbitratorsPanel arbitration={arbitration} />
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {arbitration.arbitrators?.map((arbitrator, index) => (
                             <ErrorBoundary key={arbitrator.id || index}>
@@ -493,10 +497,21 @@ const ArbitrationDetail = () => {
                         deletingHearingId={deleteHearingMutation.isPending ? deleteHearingMutation.variables : null}
                     />
                 </div>
+
+                
+
+                 {/*arbitraion verdict dection ekhane */}
+                 <Arb_VerdictSection  arbitration={arbitration}  />
+
+                 {/*Arbitrator Earning Section Here */ }
+                <ArbitratorEarningsSection arbitration={arbitration} />
+
             </div>
         </div>
     );
 };
+
+       
 
 // ── Info Card ─────────────────────────────────────────────────────────────────
 const InfoCard = ({ icon: Icon, label, value }) => (
@@ -598,46 +613,87 @@ const ArbitratorCard = ({ arbitrator }) => {
 };
 
 // ── Party Card ────────────────────────────────────────────────────────────────
-const PartyCard = ({ party, type }) => {
-    if (!party) {
-        return (
-            <div className="bg-white rounded-lg p-6 shadow-sm border-l-4 border-gray-400">
-                <div className="text-gray-500">No party data available</div>
-            </div>
-        );
-    }
-    const isPlaintiff  = type === 'plaintiff';
-    const borderColor  = isPlaintiff ? 'border-blue-600' : 'border-red-600';
-    const iconColor    = isPlaintiff ? 'text-blue-500'   : 'text-red-500';
-    const badgeColor   = isPlaintiff ? 'bg-blue-600'     : 'bg-red-600';
-    const Icon = isPlaintiff ? FaUserTie : FaUserShield;
-
-    return (
-        <div className={`bg-white rounded-lg p-6 shadow-sm border-l-4 ${borderColor}`}>
-            <div className="flex items-start mb-4">
-                <div className="relative">
-                    <img src={party.image || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150&h=150&fit=crop&crop=center'}
-                        alt={party.name || 'Party'}
-                        className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
-                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150&h=150&fit=crop&crop=center'; }} />
-                    <div className={`absolute -top-1 -right-1 ${badgeColor} text-white rounded-full w-6 h-6 flex items-center justify-center text-xs`}>
-                        <Icon />
-                    </div>
+const PartyCard = ({ party, type, index }) => (
+    <div key={index} className={`party-card bg-white rounded-lg p-6 shadow-sm border-l-4 ${
+        type === 'plaintiff' ? 'border-blue-600' : 'border-red-600'
+    }`}>
+        <div className="flex items-start mb-4">
+            <div className="relative">
+                <div className={`w-16 h-16 rounded-lg flex items-center justify-center border-2 ${
+                    type === 'plaintiff' ? 'bg-blue-100 border-blue-200' : 'bg-red-100 border-red-200'
+                }`}>
+                    {type === 'plaintiff' ? 
+                        <FaUserTie className="text-2xl text-blue-600" /> : 
+                        <FaUserShield className="text-2xl text-red-600" />
+                    }
                 </div>
-                <div className="ml-4 flex-1">
-                    <h3 className="font-bold text-gray-900 text-lg">{party.name || 'Unknown Party'}</h3>
-                    <p className="text-gray-600 text-sm mb-1"><FaUserTie className={`inline mr-2 ${iconColor}`} />{party.occupation || 'Legal Representative'}</p>
-                    <p className="text-gray-600 text-sm mb-1"><FaEnvelope className={`inline mr-2 ${iconColor}`} />{party.email || 'No email provided'}</p>
-                    <p className="text-gray-600 text-sm"><FaPhone className={`inline mr-2 ${iconColor}`} />{party.phone || 'No phone provided'}</p>
+                <div className={`absolute -top-1 -right-1 rounded-full w-6 h-6 flex items-center justify-center text-xs ${
+                    type === 'plaintiff' ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'
+                }`}>
+                    {type === 'plaintiff' ? <FaUserTie /> : <FaUserShield />}
                 </div>
             </div>
-            <div className="mb-3">
-                <p className="text-gray-700 text-sm"><FaMapMarkerAlt className={`inline mr-2 ${iconColor}`} />{party.address || 'Address not provided'}</p>
-                {party.parentsName && <p className="text-gray-600 text-sm mt-1">Parents: {party.parentsName}</p>}
+            <div className="ml-4 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold text-gray-900 text-lg">{party.name || 'Unknown'}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        type === 'plaintiff' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                        {type === 'plaintiff' ? 'Plaintiff' : 'Defendant'}
+                    </span>
+                </div>
+                <p className="text-gray-600 text-sm mb-1">
+                    <FaUserCircle className={`inline mr-2 ${type === 'plaintiff' ? 'text-blue-500' : 'text-red-500'}`} />
+                    <span className="text-gray-500">Parents:</span> {party.parentsName || 'Not specified'}
+                </p>
+                <p className="text-gray-600 text-sm mb-1">
+                    <FaEnvelope className={`inline mr-2 ${type === 'plaintiff' ? 'text-blue-500' : 'text-red-500'}`} />
+                    {party.email || 'No email'}
+                </p>
+                <p className="text-gray-600 text-sm">
+                    <FaPhone className={`inline mr-2 ${type === 'plaintiff' ? 'text-blue-500' : 'text-red-500'}`} />
+                    {party.phone || 'No phone'}
+                </p>
             </div>
         </div>
-    );
-};
+        <div className="mb-3">
+            <p className="text-gray-700 text-sm">
+                <FaMapMarkerAlt className={`inline mr-2 ${type === 'plaintiff' ? 'text-blue-500' : 'text-red-500'}`} />
+                {party.address || 'Address not specified'}
+            </p>
+        </div>
+        <div>
+            <p className="text-gray-700 text-sm mb-2">
+                <span className="font-medium">Occupation:</span> {party.occupation || 'Not specified'}
+            </p>
+        </div>
+        
+        {/* Representatives section if exists */}
+        {party.representatives && party.representatives.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Representatives</p>
+                {party.representatives.map((rep, idx) => (
+                    <div key={idx} className="flex items-center gap-3 mb-2 text-sm">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            type === 'plaintiff' ? 'bg-blue-100' : 'bg-red-100'
+                        }`}>
+                            {type === 'plaintiff' ? 
+                                <FaUserTie className="text-blue-600" /> : 
+                                <FaUserShield className="text-red-600" />
+                            }
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-800">{rep.name}</p>
+                            <p className="text-xs text-gray-500">
+                                {rep.designation} | {rep.email} | {rep.phone}
+                            </p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+    </div>
+);
 
 // ── Hearings Table ────────────────────────────────────────────────────────────
 const HearingsTable = ({ hearings, isLoading, error, onRefresh, onRowClick, onEditClick, onDeleteClick, deletingHearingId }) => {
@@ -787,5 +843,8 @@ const HearingsTable = ({ hearings, isLoading, error, onRefresh, onRowClick, onEd
         </div>
     );
 };
+
+
+
 
 export default ArbitrationDetail;

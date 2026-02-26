@@ -7,11 +7,13 @@ import useAxiosSecure from "../../../hooks/useAxiosSecure";
 function Mediation_Agreement() {
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const pdfContainerRef = useRef(null);
   const location = useLocation();
   const axiosSecure = useAxiosSecure();
 
-  // Extract case ID from URL
+  // Extract case ID from URL — e.g. /admin/mediation-agreement/69134ecebeac51e6b905d2de
   const getCaseIdFromUrl = () => {
     const pathSegments = location.pathname.split("/");
     return pathSegments[pathSegments.length - 1];
@@ -19,15 +21,41 @@ function Mediation_Agreement() {
 
   const caseId = getCaseIdFromUrl();
 
-  const handleFormSubmit = (data) => {
-    setFormData(data);
-    console.log("data: ", data);
-    const response = axiosSecure.patch(`/mediation-agreement`, { data });
-    setShowPreview(true);
+  const handleFormSubmit = async (data) => {
+    // ✅ FIX 1: Always attach caseId so the backend knows which document to update
+    const payload = { ...data, caseId };
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // ✅ FIX 2: await the request — without this the 404 error is silently lost
+      const response = await axiosSecure.patch(`/mediation-agreement`, {
+        data: payload,
+      });
+
+      if (response.data.success) {
+        // ✅ FIX 3: Only show preview AFTER the server confirms success
+        setFormData(payload);
+        setShowPreview(true);
+      } else {
+        setSubmitError(response.data.error || "Failed to submit agreement.");
+      }
+    } catch (error) {
+      console.error("Agreement submission error:", error);
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Server error. Please try again.";
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBackToForm = () => {
     setShowPreview(false);
+    setSubmitError(null);
   };
 
   return (
@@ -37,8 +65,19 @@ function Mediation_Agreement() {
           JustiFi - Mediation Agreement
         </h1>
 
+        {/* ✅ Show submission error banner above the form */}
+        {submitError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg text-red-700 text-center font-medium">
+            ⚠️ {submitError}
+          </div>
+        )}
+
         {!showPreview ? (
-          <MediationForm onSubmit={handleFormSubmit} caseId={caseId} />
+          <MediationForm
+            onSubmit={handleFormSubmit}
+            caseId={caseId}
+            isSubmitting={isSubmitting}
+          />
         ) : (
           <MedAgreementPreview
             formData={formData}

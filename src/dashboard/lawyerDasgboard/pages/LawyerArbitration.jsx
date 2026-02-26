@@ -1,161 +1,184 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaFolderOpen } from "react-icons/fa";
+import {
+  FaSearch,
+  FaFolderOpen,
+  FaCalendarAlt,
+  FaUserTie,
+  FaSpinner,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaRegClock,
+} from "react-icons/fa";
+import { useQuery } from "@tanstack/react-query";
+import useAxiosPublic from "../../../hooks/useAxiosPublic";
 
 const LawyerArbitration = () => {
   const navigate = useNavigate();
+  const axiosPublic = useAxiosPublic();
   const [currentFilter, setCurrentFilter] = useState("all");
-  const [currentSort, setCurrentSort] = useState("date");
   const [currentSearch, setCurrentSearch] = useState("");
-  const [arbitrations] = useState([
-    {
-      id: "ARB-001",
-      title: "Commercial Contract Dispute",
-      status: "ongoing",
-      nextHearing: "2024-12-15",
-      suitValue: "BDT 50,00,000",
-      clientName: "ABC Corporation Ltd.",
-      arbitrators: [
-        "arbitrator1@email.com",
-        "arbitrator2@email.com",
-        "arbitrator3@email.com",
-      ],
-      createdAt: "2024-11-01",
-    },
-    {
-      id: "ARB-002",
-      title: "Property Ownership Conflict",
-      status: "ongoing",
-      nextHearing: "2024-12-20",
-      suitValue: "BDT 1,20,00,000",
-      clientName: "Green Valley Properties",
-      arbitrators: [
-        "arbitrator1@email.com",
-        "arbitrator4@email.com",
-        "arbitrator5@email.com",
-      ],
-      createdAt: "2024-11-05",
-    },
-    {
-      id: "ARB-003",
-      title: "Business Partnership Dissolution",
-      status: "completed",
-      nextHearing: null,
-      suitValue: "BDT 75,00,000",
-      clientName: "Tech Solutions BD",
-      arbitrators: [
-        "arbitrator2@email.com",
-        "arbitrator3@email.com",
-        "arbitrator6@email.com",
-      ],
-      createdAt: "2024-10-15",
-    },
-    {
-      id: "ARB-004",
-      title: "Employment Termination Dispute",
-      status: "ongoing",
-      nextHearing: "2024-12-18",
-      suitValue: "BDT 25,00,000",
-      clientName: "Mr. Rahman Ahmed",
-      arbitrators: [
-        "arbitrator1@email.com",
-        "arbitrator7@email.com",
-        "arbitrator8@email.com",
-      ],
-      createdAt: "2024-11-10",
-    },
-    {
-      id: "ARB-005",
-      title: "Intellectual Property Rights",
-      status: "ongoing",
-      nextHearing: "2024-12-25",
-      suitValue: "BDT 2,50,00,000",
-      clientName: "Innovate Bangladesh Ltd.",
-      arbitrators: [
-        "arbitrator3@email.com",
-        "arbitrator9@email.com",
-        "arbitrator10@email.com",
-      ],
-      createdAt: "2024-11-12",
-    },
-    {
-      id: "ARB-006",
-      title: "Construction Contract Breach",
-      status: "completed",
-      nextHearing: null,
-      suitValue: "BDT 95,00,000",
-      clientName: "BuildRight Construction",
-      arbitrators: [
-        "arbitrator4@email.com",
-        "arbitrator5@email.com",
-        "arbitrator11@email.com",
-      ],
-      createdAt: "2024-09-20",
-    },
-  ]);
 
-  const [filteredArbitrations, setFilteredArbitrations] = useState([]);
+  // Current lawyer email
+  const currentLawyerEmail = "lawyer@justifi.com";
 
-  useEffect(() => {
-    filterAndSortArbitrations();
-  }, [currentFilter, currentSort, currentSearch, arbitrations]);
+  // Fetch all arbitrations from backend
+  const {
+    data: allArbitrationsData = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["allArbitrations"],
+    queryFn: async () => {
+      const response = await axiosPublic.get("/all-arbitrations");
+      return response.data;
+    },
+  });
 
-  const filterAndSortArbitrations = () => {
-    let filtered = arbitrations.filter((arb) => {
-      if (currentFilter !== "all" && arb.status !== currentFilter) {
+  // Helper function to check if lawyer is representative in arbitration
+  const isLawyerRepresentative = (arbitration, lawyerEmail) => {
+    // Check plaintiffs representatives
+    if (arbitration.plaintiffs && Array.isArray(arbitration.plaintiffs)) {
+      const isInPlaintiffs = arbitration.plaintiffs.some((plaintiff) => {
+        if (
+          plaintiff.representatives &&
+          Array.isArray(plaintiff.representatives)
+        ) {
+          return plaintiff.representatives.some(
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+          );
+        }
+        return false;
+      });
+      if (isInPlaintiffs) return true;
+    }
+
+    // Check defendants representatives (if any)
+    if (arbitration.defendants && Array.isArray(arbitration.defendants)) {
+      const isInDefendants = arbitration.defendants.some((defendant) => {
+        if (
+          defendant.representatives &&
+          Array.isArray(defendant.representatives)
+        ) {
+          return defendant.representatives.some(
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+          );
+        }
+        return false;
+      });
+      if (isInDefendants) return true;
+    }
+
+    return false;
+  };
+
+  // Helper function to get client name who added the lawyer
+  const getClientName = (arbitration, lawyerEmail) => {
+    // Check plaintiffs
+    if (arbitration.plaintiffs && Array.isArray(arbitration.plaintiffs)) {
+      for (let plaintiff of arbitration.plaintiffs) {
+        if (
+          plaintiff.representatives &&
+          Array.isArray(plaintiff.representatives)
+        ) {
+          const found = plaintiff.representatives.find(
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+          );
+          if (found) return plaintiff.name;
+        }
+      }
+    }
+
+    // Check defendants
+    if (arbitration.defendants && Array.isArray(arbitration.defendants)) {
+      for (let defendant of arbitration.defendants) {
+        if (
+          defendant.representatives &&
+          Array.isArray(defendant.representatives)
+        ) {
+          const found = defendant.representatives.find(
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+          );
+          if (found) return defendant.name;
+        }
+      }
+    }
+
+    return "Unknown Client";
+  };
+
+  // Convert to array if single object
+  const arbitrationsArray = Array.isArray(allArbitrationsData)
+    ? allArbitrationsData
+    : [allArbitrationsData];
+
+  // Filter arbitrations where lawyer is representative
+  const lawyerArbitrations = arbitrationsArray.filter((arbitration) =>
+    isLawyerRepresentative(arbitration, currentLawyerEmail)
+  );
+
+  // Filter arbitrations based on search and filter
+  const filteredArbitrations = lawyerArbitrations
+    .filter((arbitration) => {
+      if (
+        currentFilter !== "all" &&
+        arbitration.arbitration_status !== currentFilter
+      ) {
         return false;
       }
 
       if (currentSearch) {
         const searchTerm = currentSearch.toLowerCase();
-        const matchesTitle = arb.title.toLowerCase().includes(searchTerm);
-        const matchesClient = arb.clientName.toLowerCase().includes(searchTerm);
+        const matchesTitle = arbitration.caseTitle
+          ?.toLowerCase()
+          .includes(searchTerm);
+        const matchesClient = getClientName(arbitration, currentLawyerEmail)
+          ?.toLowerCase()
+          .includes(searchTerm);
         return matchesTitle || matchesClient;
       }
 
       return true;
-    });
+    })
+    .sort((a, b) => new Date(b.submissionDate) - new Date(a.submissionDate));
 
-    filtered.sort((a, b) => {
-      switch (currentSort) {
-        case "date":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "value":
-          return (
-            parseFloat(b.suitValue.replace(/[^\d.]/g, "")) -
-            parseFloat(a.suitValue.replace(/[^\d.]/g, ""))
-          );
-        case "title":
-          return a.title.localeCompare(b.title);
-        case "client":
-          return a.clientName.localeCompare(b.clientName);
-        default:
-          return 0;
-      }
-    });
-
-    setFilteredArbitrations(filtered);
-  };
-
+  // Get status color and text
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "ongoing":
         return "bg-blue-100 text-blue-800";
       case "completed":
         return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusText = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "ongoing":
         return "Ongoing";
       case "completed":
         return "Completed";
+      case "cancelled":
+        return "Cancelled";
       default:
-        return status;
+        return "Unknown";
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case "ongoing":
+        return <FaSpinner className="text-blue-600" />;
+      case "completed":
+        return <FaCheckCircle className="text-green-600" />;
+      case "cancelled":
+        return <FaTimesCircle className="text-red-600" />;
+      default:
+        return <FaRegClock className="text-gray-600" />;
     }
   };
 
@@ -163,13 +186,41 @@ const LawyerArbitration = () => {
     navigate(`/dashboard/lawyer-arbitrations/${arbitrationId}`);
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading your arbitrations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-12">
+          <div className="text-red-600 text-6xl mb-4">⚠️</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Error loading arbitrations
+          </h3>
+          <p className="text-gray-500">Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">My Arbitrations</h1>
         <p className="text-gray-600 mt-2">
-          Manage and track all your arbitration cases
+          Manage and track all your arbitration cases as legal representative
+        </p>
+        <p className="text-sm text-gray-500 mt-1">
+          Logged in as: {currentLawyerEmail}
         </p>
       </div>
 
@@ -184,118 +235,109 @@ const LawyerArbitration = () => {
             value={currentSearch}
             onChange={(e) => setCurrentSearch(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Search by client name or title..."
+            placeholder="Search by client name or case title..."
           />
         </div>
       </div>
 
-      {/* Filters and Sorting */}
+      {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: "all", label: "All Cases", color: "gray" },
+            { key: "Ongoing", label: "Ongoing", color: "blue" },
+            { key: "Completed", label: "Completed", color: "green" },
+            { key: "Cancelled", label: "Cancelled", color: "red" },
+          ].map(({ key, label, color }) => (
             <button
-              onClick={() => setCurrentFilter("all")}
+              key={key}
+              onClick={() => setCurrentFilter(key)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                currentFilter === "all"
-                  ? "bg-blue-600 text-white"
+                currentFilter === key
+                  ? `bg-${color}-600 text-white`
                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
-              All Cases
+              {label}
             </button>
-            <button
-              onClick={() => setCurrentFilter("ongoing")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                currentFilter === "ongoing"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Ongoing
-            </button>
-            <button
-              onClick={() => setCurrentFilter("completed")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                currentFilter === "completed"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              Completed
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700">
-              Sort by:
-            </label>
-            <select
-              value={currentSort}
-              onChange={(e) => setCurrentSort(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="date">Date</option>
-              <option value="value">Suit Value</option>
-              <option value="title">Title</option>
-              <option value="client">Client Name</option>
-            </select>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Arbitration Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredArbitrations.map((arbitration) => (
-          <div
-            key={arbitration.id}
-            onClick={() => handleCardClick(arbitration.id)}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300 cursor-pointer"
-          >
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    arbitration.status
-                  )}`}
-                >
-                  {getStatusText(arbitration.status)}
-                </span>
-                <span className="text-sm text-gray-500">{arbitration.id}</span>
-              </div>
+        {filteredArbitrations.map((arbitration) => {
+          const statusColor = getStatusColor(arbitration.arbitration_status);
+          const statusText = getStatusText(arbitration.arbitration_status);
+          const statusIcon = getStatusIcon(arbitration.arbitration_status);
+          const clientName = getClientName(arbitration, currentLawyerEmail);
 
-              <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                {arbitration.title}
-              </h3>
-
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                {arbitration.clientName}
-              </p>
-
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-500">Suit Value:</span>
-                <span className="text-lg font-bold text-green-600">
-                  {arbitration.suitValue}
-                </span>
-              </div>
-
-              {arbitration.nextHearing ? (
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <span className="text-sm text-gray-500">Next Hearing:</span>
-                  <span className="text-sm font-medium text-blue-600">
-                    {new Date(arbitration.nextHearing).toLocaleDateString()}
+          return (
+            <div
+              key={arbitration._id || arbitration.arbitrationId}
+              onClick={() =>
+                handleCardClick(arbitration.arbitrationId || arbitration._id)
+              }
+              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300 cursor-pointer"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColor} gap-1`}
+                  >
+                    {statusIcon}
+                    {statusText}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {arbitration.arbitrationId}
                   </span>
                 </div>
-              ) : arbitration.status === "completed" ? (
+
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                  {arbitration.caseTitle}
+                </h3>
+
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Client:</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {clientName}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Suit Value:</span>
+                    <span className="text-lg font-bold text-green-600">
+                      BDT{" "}
+                      {parseInt(arbitration.suitValue || 0).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {arbitration.sessionData?.sessionDateTime && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">
+                        Next Hearing:
+                      </span>
+                      <span className="text-sm font-medium text-blue-600 flex items-center gap-1">
+                        <FaCalendarAlt />
+                        {new Date(
+                          arbitration.sessionData.sessionDateTime
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <span className="text-sm text-gray-500">Status:</span>
-                  <span className="text-sm font-medium text-green-600">
-                    Case Closed
+                  <span className="text-sm text-gray-500">Category:</span>
+                  <span className="text-sm font-medium text-gray-600">
+                    {arbitration.caseCategory}
                   </span>
                 </div>
-              ) : null}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Empty State */}
@@ -308,7 +350,9 @@ const LawyerArbitration = () => {
             No arbitrations found
           </h3>
           <p className="text-gray-500">
-            No arbitration cases match your current filters.
+            {arbitrationsArray.length > 0
+              ? "You are not currently representing any clients in arbitration cases."
+              : "No arbitration data available."}
           </p>
         </div>
       )}

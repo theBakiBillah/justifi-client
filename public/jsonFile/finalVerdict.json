@@ -1,0 +1,169 @@
+{
+  "_id": "ObjectId",
+  "verdictId": "VER-6996F-1678901234",
+  "arbitrationId": "ARB-6996F-51084196",
+  "caseId": "6996f1e72d4688d65cf8a973",
+
+  "status": "draft",
+  // draft | published | archived
+
+  "createdBy": "arbitrator01@justifi.com",
+  "createdAt": "2026-02-24T10:00:00.000Z",
+  "updatedAt": "2026-02-24T12:00:00.000Z",
+  "publishedAt": null,
+
+  // ─── Section 4: Proceedings (Arbitrator Input) ───
+  "proceedings": {
+    "hearingDescription": "Both parties were present. The claimant presented email evidence...",
+    "sessionNotes": "Tribunal noted inconsistency in respondent's timeline.",
+    "nextSteps": "Parties directed to submit additional documents by March 1, 2026."
+  },
+
+  // ─── Section 5: Claims Summary (Arbitrator Input) ───
+  "claimsSummary": {
+    "plaintiffClaim": "The claimant alleges that an agreement was made...",
+    "defendantDefense": "The respondent denies all allegations and claims..."
+  },
+
+  // ─── Section 6 & 7: Issues + Findings (Arbitrator Input) ───
+  "issues": [
+    {
+      "issueId": "ISS_001",
+      "issueNumber": 1,
+      "title": "Whether a valid agreement existed between the parties?",
+      "finding": "Based on email exchanges and PThread.pdf, a valid agreement existed.",
+      "decision": "Issue decided in favor of the Claimant.",
+      "decidedInFavorOf": "claimant"
+      // claimant | respondent | neutral
+    },
+    {
+      "issueId": "ISS_002",
+      "issueNumber": 2,
+      "title": "Whether the respondent breached the agreement?",
+      "finding": "Respondent failed to provide evidence of delivery.",
+      "decision": "Respondent breached the agreement.",
+      "decidedInFavorOf": "claimant"
+    }
+  ],
+
+  // ─── Section 8: Final Order (Arbitrator Input) ───
+  "finalOrder": {
+    "awardAmount": 500000,
+    "awardAmountWords": "Five Lakh Taka Only",
+
+    "payableBy": [
+      "Shuvro (Respondent)"
+    ],
+    "payableTo": [
+      "Md. Mehedi Hasan (Claimant)"
+    ],
+
+    "paymentDeadlineDays": 30,
+    "interestRatePercent": 10,
+    "arbitrationCost": 5444,
+
+    "finalOrders": "The Respondent must hand over all original files within 30 days.",
+    "additionalConditions": "Any other conditions imposed by tribunal.",
+
+    "awardDate": "2026-02-24",
+    "awardPlace": "Dhaka, Bangladesh",
+
+    "dissentingOpinion": {
+      "hasDissent": false,
+      "details": ""
+    }
+  },
+
+  // ─── Snapshot: Auto-filled data at time of verdict creation ───
+  // (Backend থেকে copy করে রাখা হবে যাতে পরে arbitration data change হলেও verdict ঠিক থাকে)
+  "snapshot": {
+    "caseTitle": "problem solve",
+    "caseCategory": "Construction",
+    "disputeNature": "file related problem arise korse",
+    "suitValue": "455999",
+    "submissionDate": "2026-02-19T11:20:07.640Z",
+    "agreementDate": "2026-02-20",
+    "sittings": "555",
+    "complianceDays": "444",
+    "totalCost": "444",
+    "processingFee": 5000,
+
+    "plaintiffs": [
+      {
+        "id": "plaintiff-1",
+        "name": "md mehedi hasan",
+        "email": "mhasan221082@bscse.uiu.ac.bd",
+        "phone": "0124567890",
+        "address": "1032",
+        "occupation": "sss",
+        "parentsName": "eee",
+        "representatives": [
+          {
+            "name": "baki billah",
+            "email": "baki@gmail.com",
+            "designation": "stdent",
+            "phone": "01902676679"
+          }
+        ]
+      }
+    ],
+    "defendants": [
+      {
+        "id": "defendant-1",
+        "name": "Shuvro",
+        "email": "mehedi1013401@gmail.com",
+        "phone": "1345678900",
+        "address": "1032",
+        "occupation": "businessman",
+        "parentsName": "janina"
+      }
+    ],
+
+    "presidingArbitrator": {
+      "name": "Arbitrator 01",
+      "email": "arbitrator01@justifi.com"
+    },
+    "arbitrator1": {
+      "name": "Aminul Ghani Titto",
+      "email": "aminul@gmail.com"
+    },
+    "arbitrator2": {
+      "name": "Adv Najrul Mollah",
+      "email": "arbitrator01@justifi.com"
+    },
+    "justifiRepresentative": {
+      "name": "Jennifer Martinez",
+      "designation": "Senior Legal Counsel",
+      "email": "jennifer.martinez@justifi.com"
+    },
+
+    "hearings": [
+      {
+        "hearingId": "ARB-HER-1771703756698",
+        "hearingNumber": 1,
+        "date": "2026-02-20T19:55:00.000Z",
+        "duration": 120,
+        "agenda": "mmmmm",
+        "status": "completed",
+        "attendance": {
+          "presidingArbitrator": true,
+          "arbitrator1": true,
+          "arbitrator2": true,
+          "plaintiffs": [
+            { "email": "mhasan221082@bscse.uiu.ac.bd", "present": true }
+          ],
+          "defendants": [
+            { "email": "mehedi1013401@gmail.com", "present": true }
+          ]
+        }
+      }
+    ],
+
+    "plaintiffDocuments": [
+      { "partyId": "plaintiff-1", "name": "md mehedi hasan", "fileCount": 4 }
+    ],
+    "defendantDocuments": [
+      { "partyId": "defendant-1", "name": "Shuvro", "fileCount": 2 }
+    ]
+  }
+}
