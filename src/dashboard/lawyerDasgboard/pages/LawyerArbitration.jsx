@@ -36,6 +36,7 @@ const LawyerArbitration = () => {
   });
 
   // Helper function to check if lawyer is representative in arbitration
+  // Shows ALL cases where lawyer is listed — regardless of case_status (running or cancelled)
   const isLawyerRepresentative = (arbitration, lawyerEmail) => {
     // Check plaintiffs representatives
     if (arbitration.plaintiffs && Array.isArray(arbitration.plaintiffs)) {
@@ -45,7 +46,7 @@ const LawyerArbitration = () => {
           Array.isArray(plaintiff.representatives)
         ) {
           return plaintiff.representatives.some(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
+            (rep) => rep.email === lawyerEmail,
           );
         }
         return false;
@@ -61,7 +62,7 @@ const LawyerArbitration = () => {
           Array.isArray(defendant.representatives)
         ) {
           return defendant.representatives.some(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
+            (rep) => rep.email === lawyerEmail,
           );
         }
         return false;
@@ -82,7 +83,7 @@ const LawyerArbitration = () => {
           Array.isArray(plaintiff.representatives)
         ) {
           const found = plaintiff.representatives.find(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
+            (rep) => rep.email === lawyerEmail,
           );
           if (found) return plaintiff.name;
         }
@@ -97,7 +98,7 @@ const LawyerArbitration = () => {
           Array.isArray(defendant.representatives)
         ) {
           const found = defendant.representatives.find(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
+            (rep) => rep.email === lawyerEmail,
           );
           if (found) return defendant.name;
         }

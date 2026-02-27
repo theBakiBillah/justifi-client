@@ -47,14 +47,12 @@ const LawyerArbitrationDetails = () => {
   const hasAccess =
     arbitrationData?.plaintiffs?.some((plaintiff) =>
       plaintiff.representatives?.some(
-        (rep) =>
-          rep.email === currentLawyerEmail && rep.case_status === "running",
+        (rep) => rep.email === currentLawyerEmail,
       ),
     ) ||
     arbitrationData?.defendants?.some((defendant) =>
       defendant.representatives?.some(
-        (rep) =>
-          rep.email === currentLawyerEmail && rep.case_status === "running",
+        (rep) => rep.email === currentLawyerEmail,
       ),
     ) ||
     false;
@@ -178,6 +176,7 @@ const LawyerArbitrationDetails = () => {
         parties={mergedParties}
         currentLawyerEmail={currentLawyerEmail}
         appointedClient={appointedClient}
+        arbitrationId={arbitrationData?.arbitrationId}
       />
 
       <LawyerArbHearing
