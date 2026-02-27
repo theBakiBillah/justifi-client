@@ -19,8 +19,8 @@ const LawyerArbitration = () => {
   const [currentFilter, setCurrentFilter] = useState("all");
   const [currentSearch, setCurrentSearch] = useState("");
 
-  // Current lawyer email
-  const currentLawyerEmail = "lawyer@justifi.com";
+  // ✅ FIX: Corrected email to match the representative in the database
+  const currentLawyerEmail = "lawyer01@justifi.com";
 
   // Fetch all arbitrations from backend
   const {
@@ -45,7 +45,7 @@ const LawyerArbitration = () => {
           Array.isArray(plaintiff.representatives)
         ) {
           return plaintiff.representatives.some(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
           );
         }
         return false;
@@ -61,7 +61,7 @@ const LawyerArbitration = () => {
           Array.isArray(defendant.representatives)
         ) {
           return defendant.representatives.some(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
           );
         }
         return false;
@@ -82,7 +82,7 @@ const LawyerArbitration = () => {
           Array.isArray(plaintiff.representatives)
         ) {
           const found = plaintiff.representatives.find(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
           );
           if (found) return plaintiff.name;
         }
@@ -97,7 +97,7 @@ const LawyerArbitration = () => {
           Array.isArray(defendant.representatives)
         ) {
           const found = defendant.representatives.find(
-            (rep) => rep.email === lawyerEmail && rep.case_status === "running"
+            (rep) => rep.email === lawyerEmail && rep.case_status === "running",
           );
           if (found) return defendant.name;
         }
@@ -107,14 +107,18 @@ const LawyerArbitration = () => {
     return "Unknown Client";
   };
 
-  // Convert to array if single object
+  // ✅ FIX: Robust array normalization — handles array, {arbitrations:[...]}, or single object
   const arbitrationsArray = Array.isArray(allArbitrationsData)
     ? allArbitrationsData
-    : [allArbitrationsData];
+    : Array.isArray(allArbitrationsData?.arbitrations)
+      ? allArbitrationsData.arbitrations
+      : allArbitrationsData && typeof allArbitrationsData === "object"
+        ? [allArbitrationsData]
+        : [];
 
   // Filter arbitrations where lawyer is representative
   const lawyerArbitrations = arbitrationsArray.filter((arbitration) =>
-    isLawyerRepresentative(arbitration, currentLawyerEmail)
+    isLawyerRepresentative(arbitration, currentLawyerEmail),
   );
 
   // Filter arbitrations based on search and filter
@@ -182,8 +186,10 @@ const LawyerArbitration = () => {
     }
   };
 
-  const handleCardClick = (arbitrationId) => {
-    navigate(`/dashboard/lawyer-arbitrations/${arbitrationId}`);
+  // ✅ FIX: Always prefer arbitrationId for navigation (cleaner URLs, consistent with detail page lookup)
+  const handleCardClick = (arbitration) => {
+    const navId = arbitration.arbitrationId || arbitration._id;
+    navigate(`/dashboard/lawyer-arbitrations/${navId}`);
   };
 
   if (isLoading) {
@@ -275,9 +281,8 @@ const LawyerArbitration = () => {
           return (
             <div
               key={arbitration._id || arbitration.arbitrationId}
-              onClick={() =>
-                handleCardClick(arbitration.arbitrationId || arbitration._id)
-              }
+              // ✅ FIX: pass full arbitration object so handleCardClick can pick best ID
+              onClick={() => handleCardClick(arbitration)}
               className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300 cursor-pointer"
             >
               <div className="p-6">
@@ -321,7 +326,7 @@ const LawyerArbitration = () => {
                       <span className="text-sm font-medium text-blue-600 flex items-center gap-1">
                         <FaCalendarAlt />
                         {new Date(
-                          arbitration.sessionData.sessionDateTime
+                          arbitration.sessionData.sessionDateTime,
                         ).toLocaleDateString()}
                       </span>
                     </div>
