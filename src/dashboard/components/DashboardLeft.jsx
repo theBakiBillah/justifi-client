@@ -159,37 +159,33 @@ const DashboardLeft = () => {
     ];
 
     const adminLinks = [
-        {
-            name: "All Users",
-            path: "/admin/all-users",
-            icon: <FaUsers className="text-lg" />,
-        },
-        {
-            name: "Lawyers Management",
-            path: "/admin/all-lawyers",
-            icon: <FaGavel className="text-lg" />,
-        },
-        {
-            name: "Arbitrators Management",
-            path: "/admin/all-arbitrators",
-            icon: <FaBalanceScale className="text-lg" />,
-        },
-        {
-            name: "All Arbitrations",
-            path: "/admin/arbitrations-management",
-            icon: <FaBalanceScale className="text-lg" />,
-        },
-        {
-            name: "Mediator Management",
-            path: "/admin/all-mediators",
-            icon: <FaHandshake className="text-lg" />,
-        },
-        {
-            name: "All Mediations",
-            path: "/admin/all-mediations",
-            icon: <FaHandshake className="text-lg" />,
-        },
-    ];
+    {
+      name: "Laywers Management",
+      path: "/admin/all-lawyers",
+      icon: <FaGavel className="text-lg" />,
+    },
+    {
+      name: "Arbitrators Management",
+      path: "/admin/all-arbitrators",
+      icon: <FaBalanceScale className="text-lg" />,
+    },
+    {
+      name: "Arbitrations Management",
+      path: "/admin/arbitrations-management",
+      icon: <FaBalanceScale className="text-lg" />,
+    },
+    {
+      name: "Mediator Management",
+      path: "/admin/all-mediators",
+      icon: <FaHandshake className="text-lg" />,
+    },
+    {
+      name: "Mediations Management",
+      path: "/admin/mediation-management",
+      icon: <FaHandshake className="text-lg" />,
+    },
+  ];
+
 
     const getLinksForRole = () => {
         switch (userRole) {

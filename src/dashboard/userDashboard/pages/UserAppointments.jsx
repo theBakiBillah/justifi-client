@@ -14,15 +14,18 @@ import {
     FaTimesCircle,
     FaUserTie,
     FaVideo,
+    FaCommentAlt,
 } from "react-icons/fa";
 import useAxiosSecure from "../../../hooks/useAxiosSecure";
 import useUserData from "../../../hooks/useUserData";
 import Loading from "../../../common/loading/Loading";
+import FeedbackModal from "../components/Feedbackmodal"; // ✅ new import
 
 const UserAppointments = () => {
     const { currentUser } = useUserData();
     const axiosSecure = useAxiosSecure();
     const [filter, setFilter] = useState("all");
+    const [feedbackAppointment, setFeedbackAppointment] = useState(null); // ✅ new state
 
     const {
         data: myAppointments = [],
@@ -39,13 +42,11 @@ const UserAppointments = () => {
         enabled: !!currentUser?.email,
     });
 
-    // Filter appointments based on status
     const filteredAppointments = myAppointments.filter((appointment) => {
         if (filter === "all") return true;
         return appointment.status === filter;
     });
 
-    // Status badge component
     const StatusBadge = ({ status }) => {
         const statusConfig = {
             confirmed: {
@@ -83,17 +84,12 @@ const UserAppointments = () => {
         );
     };
 
-    // Stats cards component
     const StatCard = ({ icon, value, label, color, trend }) => (
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                        {label}
-                    </p>
-                    <p className={`text-2xl font-bold ${color} mb-1`}>
-                        {value}
-                    </p>
+                    <p className="text-sm font-medium text-gray-600 mb-1">{label}</p>
+                    <p className={`text-2xl font-bold ${color} mb-1`}>{value}</p>
                     {trend && <p className="text-xs text-gray-500">{trend}</p>}
                 </div>
                 <div className="text-2xl opacity-80 group-hover:scale-110 transition-transform duration-300">
@@ -103,7 +99,6 @@ const UserAppointments = () => {
         </div>
     );
 
-    // Format date for display
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString("en-US", {
             weekday: "long",
@@ -113,7 +108,6 @@ const UserAppointments = () => {
         });
     };
 
-    // Calculate time until appointment
     const getTimeUntilAppointment = (dateString, timeString) => {
         const appointmentDate = new Date(
             `${dateString}T${timeString.split("-")[0]}`
@@ -128,19 +122,18 @@ const UserAppointments = () => {
         return `In ${diffDays} days`;
     };
 
-    if (isLoading) {
-        return <Loading />;
-    }
+    // Show feedback button for confirmed/completed appointments that haven't been reviewed yet
+    const canGiveFeedback = (appointment) => {
+        if (!["confirmed", "completed"].includes(appointment.status)) return false;
+        if (appointment.feedback) return false;
+        return true;
+    };
 
-    const confirmedCount = myAppointments.filter(
-        (a) => a.status === "confirmed"
-    ).length;
-    const cancelledCount = myAppointments.filter(
-        (a) => a.status === "cancelled"
-    ).length;
-    const pendingCount = myAppointments.filter(
-        (a) => a.status === "pending"
-    ).length;
+    if (isLoading) return <Loading />;
+
+    const confirmedCount = myAppointments.filter((a) => a.status === "confirmed").length;
+    const cancelledCount = myAppointments.filter((a) => a.status === "cancelled").length;
+    const pendingCount   = myAppointments.filter((a) => a.status === "pending").length;
 
     return (
         <section className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 py-8">
@@ -161,33 +154,13 @@ const UserAppointments = () => {
 
                 {/* Stats Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <StatCard
-                        icon={<FaCalendarCheck className="text-blue-600" />}
-                        value={myAppointments.length}
-                        label="Total Appointments"
-                        color="text-blue-600"
-                    />
-                    <StatCard
-                        icon={<FaAward className="text-emerald-600" />}
-                        value={confirmedCount}
-                        label="Confirmed"
-                        color="text-emerald-600"
-                    />
-                    <StatCard
-                        icon={<FaTimesCircle className="text-rose-600" />}
-                        value={cancelledCount}
-                        label="Cancelled"
-                        color="text-rose-600"
-                    />
-                    <StatCard
-                        icon={<FaRegClock className="text-amber-600" />}
-                        value={pendingCount}
-                        label="Pending"
-                        color="text-amber-600"
-                    />
+                    <StatCard icon={<FaCalendarCheck className="text-blue-600" />} value={myAppointments.length} label="Total Appointments" color="text-blue-600" />
+                    <StatCard icon={<FaAward className="text-emerald-600" />} value={confirmedCount} label="Confirmed" color="text-emerald-600" />
+                    <StatCard icon={<FaTimesCircle className="text-rose-600" />} value={cancelledCount} label="Cancelled" color="text-rose-600" />
+                    <StatCard icon={<FaRegClock className="text-amber-600" />} value={pendingCount} label="Pending" color="text-amber-600" />
                 </div>
 
-                {/* Filters Card */}
+                {/* Filters */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-6 mb-8">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div className="flex items-center space-x-3">
@@ -196,29 +169,12 @@ const UserAppointments = () => {
                                 Filter Appointments
                             </h3>
                         </div>
-
                         <div className="flex flex-wrap gap-2">
                             {[
-                                {
-                                    key: "all",
-                                    label: "All Appointments",
-                                    color: "gray",
-                                },
-                                {
-                                    key: "confirmed",
-                                    label: "Confirmed",
-                                    color: "emerald",
-                                },
-                                {
-                                    key: "cancelled",
-                                    label: "Cancelled",
-                                    color: "rose",
-                                },
-                                {
-                                    key: "pending",
-                                    label: "Pending",
-                                    color: "amber",
-                                },
+                                { key: "all",       label: "All Appointments", color: "gray"    },
+                                { key: "confirmed", label: "Confirmed",        color: "emerald" },
+                                { key: "cancelled", label: "Cancelled",        color: "rose"    },
+                                { key: "pending",   label: "Pending",          color: "amber"   },
                             ].map(({ key, label, color }) => (
                                 <button
                                     key={key}
@@ -258,6 +214,8 @@ const UserAppointments = () => {
                                 appointment.booking.preferredDate,
                                 appointment.booking.preferredTime
                             );
+                            const eligible       = canGiveFeedback(appointment);
+                            const alreadyReviewed = !!appointment.feedback;
 
                             return (
                                 <div
@@ -265,32 +223,22 @@ const UserAppointments = () => {
                                     className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 hover:shadow-xl hover:border-blue-200/50 transition-all duration-500 overflow-hidden"
                                 >
                                     <div className="p-8">
-                                        {/* Header with Status and Meta */}
+                                        {/* Header with Status */}
                                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-                                            <div className="flex items-center space-x-4">
-                                                <StatusBadge
-                                                    status={appointment.status}
-                                                />
+                                            <div className="flex items-center flex-wrap gap-3">
+                                                <StatusBadge status={appointment.status} />
                                                 <div className="flex items-center text-sm text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
                                                     <FaRegClock className="mr-1.5" />
                                                     {timeUntil}
                                                 </div>
+
+
                                             </div>
+
                                             <div className="text-sm text-gray-500 flex items-center space-x-4">
-                                                <span>
-                                                    Created:{" "}
-                                                    {new Date(
-                                                        appointment.createdAt
-                                                    ).toLocaleDateString()}
-                                                </span>
-                                                {appointment.updatedAt !==
-                                                    appointment.createdAt && (
-                                                    <span>
-                                                        Updated:{" "}
-                                                        {new Date(
-                                                            appointment.updatedAt
-                                                        ).toLocaleDateString()}
-                                                    </span>
+                                                <span>Created: {new Date(appointment.createdAt).toLocaleDateString()}</span>
+                                                {appointment.updatedAt !== appointment.createdAt && (
+                                                    <span>Updated: {new Date(appointment.updatedAt).toLocaleDateString()}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -306,71 +254,54 @@ const UserAppointments = () => {
                                                 </h3>
                                                 <div className="flex items-start space-x-4 p-4 bg-gray-50/80 rounded-xl border border-gray-200/60">
                                                     <img
-                                                        src={
-                                                            appointment.lawyer
-                                                                .img
-                                                        }
-                                                        alt={
-                                                            appointment.lawyer
-                                                                .name
-                                                        }
+                                                        src={appointment.lawyer.img}
+                                                        alt={appointment.lawyer.name}
                                                         className="w-14 h-14 rounded-xl object-cover shadow-sm"
                                                     />
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className="font-bold text-gray-900 text-lg mb-1">
-                                                            {
-                                                                appointment
-                                                                    .lawyer.name
-                                                            }
+                                                            {appointment.lawyer.name}
                                                         </h4>
                                                         <p className="text-sm text-gray-600 flex items-center mb-2">
                                                             <FaEnvelope className="mr-2 text-gray-400" />
-                                                            <span className="truncate">
-                                                                {
-                                                                    appointment
-                                                                        .lawyer
-                                                                        .email
-                                                                }
-                                                            </span>
+                                                            <span className="truncate">{appointment.lawyer.email}</span>
                                                         </p>
                                                         <div className="flex items-center space-x-4 text-sm">
                                                             <div className="flex items-center text-gray-600">
                                                                 <FaAward className="mr-1.5 text-amber-500" />
-                                                                <span className="font-semibold">
-                                                                    {
-                                                                        appointment
-                                                                            .lawyer
-                                                                            .experience
-                                                                    }{" "}
-                                                                    years
-                                                                </span>
+                                                                <span className="font-semibold">{appointment.lawyer.experience} years</span>
                                                             </div>
                                                             <div className="flex items-center text-gray-600">
                                                                 <FaStar className="mr-1.5 text-emerald-500" />
-                                                                <span className="font-semibold">
-                                                                    {
-                                                                        appointment
-                                                                            .lawyer
-                                                                            .successRate
-                                                                    }
-                                                                    % success
-                                                                </span>
+                                                                <span className="font-semibold">{appointment.lawyer.successRate}% success</span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {appointment.lawyer.specialization.map(
-                                                        (spec, index) => (
-                                                            <span
-                                                                key={index}
-                                                                className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg border border-blue-200"
-                                                            >
-                                                                {spec}
-                                                            </span>
-                                                        )
-                                                    )}
+                                                    {appointment.lawyer.specialization.map((spec, index) => (
+                                                        <span key={index} className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg border border-blue-200">
+                                                            {spec}
+                                                        </span>
+                                                    ))}
                                                 </div>
+
+                                                {/* Feedback button below specialization */}
+                                                {eligible && (
+                                                    <button
+                                                        onClick={() => setFeedbackAppointment(appointment)}
+                                                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm hover:shadow-md active:scale-95 w-fit"
+                                                    >
+                                                        <FaCommentAlt className="text-xs" />
+                                                     Feedback & Rating
+                                                    </button>
+                                                )}
+                                                {alreadyReviewed && (
+                                                    <p className="text-sm text-emerald-600 font-medium flex items-center gap-1.5">
+                                                        <FaStar className="text-amber-400" />
+                                                        You rated this session {appointment.feedback.rating}/5
+                                                    </p>
+                                                )}
                                             </div>
 
                                             {/* Appointment Details */}
@@ -385,64 +316,36 @@ const UserAppointments = () => {
                                                     <div className="flex items-center text-gray-700 p-2 hover:bg-white rounded-lg transition-colors">
                                                         <FaCalendarCheck className="text-gray-400 mr-4 text-lg" />
                                                         <div>
-                                                            <div className="font-medium">
-                                                                {formatDate(
-                                                                    appointment
-                                                                        .booking
-                                                                        .preferredDate
-                                                                )}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500">
-                                                                {timeUntil}
-                                                            </div>
+                                                            <div className="font-medium">{formatDate(appointment.booking.preferredDate)}</div>
+                                                            <div className="text-sm text-gray-500">{timeUntil}</div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center text-gray-700 p-2 hover:bg-white rounded-lg transition-colors">
                                                         <FaClock className="text-gray-400 mr-4 text-lg" />
-                                                        <span className="font-medium">
-                                                            {
-                                                                appointment
-                                                                    .booking
-                                                                    .preferredTime
-                                                            }
-                                                        </span>
+                                                        <span className="font-medium">{appointment.booking.preferredTime}</span>
                                                     </div>
                                                     <div className="flex items-center text-gray-700 p-2 hover:bg-white rounded-lg transition-colors">
                                                         <FaBriefcase className="text-gray-400 mr-4 text-lg" />
-                                                        <span className="font-medium">
-                                                            {
-                                                                appointment
-                                                                    .booking
-                                                                    .caseType
-                                                            }
-                                                        </span>
+                                                        <span className="font-medium">{appointment.booking.caseType}</span>
                                                     </div>
-                                                    {appointment.booking
-                                                        .meetingLink && (
+                                                    {appointment.booking.meetingLink && (
                                                         <div className="flex items-center p-2 hover:bg-white rounded-lg transition-colors group/link">
                                                             <FaVideo className="text-blue-500 mr-4 text-lg" />
                                                             <a
-                                                                href={
-                                                                    appointment
-                                                                        .booking
-                                                                        .meetingLink
-                                                                }
+                                                                href={appointment.booking.meetingLink}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="font-medium text-blue-600 hover:text-blue-700 flex items-center group-hover/link:underline"
                                                             >
-                                                                Join Virtual
-                                                                Meeting
-                                                                <span className="ml-2 text-sm">
-                                                                    🔗
-                                                                </span>
+                                                                Join Virtual Meeting
+                                                                <span className="ml-2 text-sm">🔗</span>
                                                             </a>
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            {/* Problem Description */}
+                                            {/* Case Details */}
                                             <div className="space-y-5">
                                                 <h3 className="font-semibold text-gray-900 text-lg flex items-center">
                                                     <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
@@ -452,41 +355,67 @@ const UserAppointments = () => {
                                                 </h3>
                                                 <div className="p-4 bg-gray-50/80 rounded-xl border border-gray-200/60 h-full">
                                                     <div className="mb-4">
-                                                        <h4 className="font-medium text-gray-900 mb-2">
-                                                            Problem Description
-                                                        </h4>
+                                                        <h4 className="font-medium text-gray-900 mb-2">Problem Description</h4>
                                                         <p className="text-gray-700 text-sm leading-relaxed bg-white p-4 rounded-lg border border-gray-200 min-h-[100px]">
-                                                            {appointment.booking
-                                                                .problemDescription ||
+                                                            {appointment.booking.problemDescription ||
                                                                 "No detailed description provided for this case."}
                                                         </p>
                                                     </div>
-                                                    {appointment.booking
-                                                        .cancellationNote && (
+                                                    {appointment.booking.cancellationNote && (
                                                         <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
-                                                            <h4 className="font-medium text-rose-800 text-sm mb-1">
-                                                                Cancellation
-                                                                Note:
+                                                            <h4 className="font-medium text-rose-800 text-sm mb-1">Cancellation Note:</h4>
+                                                            <p className="text-rose-700 text-sm">{appointment.booking.cancellationNote}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ✅ Feedback summary if already reviewed */}
+                                                    {alreadyReviewed && (
+                                                        <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                                            <h4 className="font-medium text-indigo-800 text-sm mb-2 flex items-center gap-1.5">
+                                                                <FaStar className="text-amber-400" /> Your Feedback
                                                             </h4>
-                                                            <p className="text-rose-700 text-sm">
-                                                                {
-                                                                    appointment
-                                                                        .booking
-                                                                        .cancellationNote
-                                                                }
-                                                            </p>
+                                                            <div className="flex items-center gap-1 mb-1">
+                                                                {[1, 2, 3, 4, 5].map((s) => (
+                                                                    <FaStar
+                                                                        key={s}
+                                                                        className={`text-sm ${
+                                                                            s <= appointment.feedback.rating
+                                                                                ? "text-amber-400"
+                                                                                : "text-gray-200"
+                                                                        }`}
+                                                                    />
+                                                                ))}
+                                                                <span className="text-xs text-gray-500 ml-1">
+                                                                    {appointment.feedback.rating}/5
+                                                                </span>
+                                                            </div>
+                                                            {appointment.feedback.additional && (
+                                                                <p className="text-indigo-700 text-xs mt-1 italic">
+                                                                    "{appointment.feedback.additional}"
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+
+
                                 </div>
                             );
                         })
                     )}
                 </div>
             </div>
+
+            {/* ✅ Feedback Modal */}
+            {feedbackAppointment && (
+                <FeedbackModal
+                    appointment={feedbackAppointment}
+                    onClose={() => setFeedbackAppointment(null)}
+                />
+            )}
         </section>
     );
 };
