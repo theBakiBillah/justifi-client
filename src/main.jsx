@@ -53,6 +53,7 @@ import Arbitration_Agreement from "./dashboard/admin/pages/Arbitration_Agreement
 import Mediation_Agreement from "./dashboard/admin/pages/Mediation_Agreement";
 import MediationManagement from "./dashboard/admin/pages/mediationManagement/MediationManagement";
 import AdminMediationDetails from "./dashboard/admin/pages/mediationManagement/AdminMediationDetails";
+import MediatorProfile from "./dashboard/mediatorDashboard/MediatorProfile";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +123,7 @@ createRoot(document.getElementById("root")).render(
             <Route path="my-mediations/:id" element={<MediationDetails />} />
             {/* Lawyer Time Slots */}
             <Route path="my-time-slots/:email" element={<LawyerTimeSlots />} />
+            <Route path="mediator-profile" element={<MediatorProfile />} />
           </Route>
 
           {/* ================= ADMIN ROUTES ================= */}
