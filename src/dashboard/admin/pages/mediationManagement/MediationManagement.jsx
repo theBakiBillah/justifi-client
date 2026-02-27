@@ -1,32 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useArbData from "../../../../hooks/useArbData";
-import ArbitrationCard from "./ArbitrationCard";
+import useMediationData from "../../../../hooks/useMediationData";
+import MediationCard from "./MediationCard";
 import SessionModal from "./SessionModal";
-import GlobalPendingApprovals from "../../components/GlobalPendingApprovals";
 
-const ArbitrationsManagement = () => {
-    const { allArbitrations, refetchArbitrations } = useArbData();
+const MediationManagement = () => {
+    const { allMediations, refetchMediations } = useMediationData();
     const navigate = useNavigate();
-    const [selectedArbitration, setSelectedArbitration] = useState(null);
+    const [selectedMediation, setSelectedMediation] = useState(null);
     const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState("All");
     const [paymentFilter, setPaymentFilter] = useState("All");
+    const [categoryFilter, setCategoryFilter] = useState("All");
 
-    const openSessionModal = (arbitration) => {
-        setSelectedArbitration(arbitration);
+    const openSessionModal = (mediation) => {
+        setSelectedMediation(mediation);
         setIsSessionModalOpen(true);
     };
 
     const closeSessionModal = () => {
         setIsSessionModalOpen(false);
-        setSelectedArbitration(null);
-        refetchArbitrations();
+        setSelectedMediation(null);
+        refetchMediations();
     };
 
-    const viewDetails = (arbitration) => {
-        navigate(`/admin/arbitrations/${arbitration._id}`, {
-            state: { arbitration },
+    const viewDetails = (mediation) => {
+        navigate(`/admin/mediations/${mediation._id}`, {
+            state: { mediation },
         });
     };
 
@@ -38,29 +38,35 @@ const ArbitrationsManagement = () => {
         });
     };
 
-    // Filter arbitrations based on selected filters
-    const filteredArbitrations = allArbitrations.filter((arbitration) => {
+    // Get unique categories for filter
+    const categories = ["All", ...new Set(allMediations.map(m => m.caseCategory).filter(Boolean))];
+
+    // Filter mediations based on selected filters
+    const filteredMediations = allMediations.filter((mediation) => {
         const statusMatch =
             statusFilter === "All" ||
-            arbitration.arbitration_status === statusFilter;
+            mediation.arbitration_status === statusFilter;
+        
         const paymentMatch =
             paymentFilter === "All" ||
-            (paymentFilter === "Paid" && arbitration.payment_status) ||
-            (paymentFilter === "Unpaid" && !arbitration.payment_status);
-        return statusMatch && paymentMatch;
+            (paymentFilter === "Paid" && mediation.payment_status) ||
+            (paymentFilter === "Unpaid" && !mediation.payment_status);
+        
+        const categoryMatch =
+            categoryFilter === "All" ||
+            mediation.caseCategory === categoryFilter;
+
+        return statusMatch && paymentMatch && categoryMatch;
     });
 
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                Arbitrations Management
+                Mediation Management
             </h1>
             <p className="text-gray-600 mb-6">
-                Manage and monitor all arbitration cases
+                Manage and monitor all mediation cases
             </p>
-
-              {/* ✅ এটা Statistics Cards এর আগে add করো */}
-            <GlobalPendingApprovals allArbitrations={allArbitrations} />
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -69,7 +75,7 @@ const ArbitrationsManagement = () => {
                         Total Cases
                     </h3>
                     <p className="text-2xl font-bold text-gray-800">
-                        {allArbitrations.length}
+                        {allMediations.length}
                     </p>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
@@ -78,7 +84,7 @@ const ArbitrationsManagement = () => {
                     </h3>
                     <p className="text-2xl font-bold text-yellow-600">
                         {
-                            allArbitrations.filter(
+                            allMediations.filter(
                                 (item) => item.arbitration_status === "Pending"
                             ).length
                         }
@@ -90,9 +96,8 @@ const ArbitrationsManagement = () => {
                     </h3>
                     <p className="text-2xl font-bold text-green-600">
                         {
-                            allArbitrations.filter(
-                                (item) =>
-                                    item.arbitration_status === "Completed"
+                            allMediations.filter(
+                                (item) => item.arbitration_status === "Completed"
                             ).length
                         }
                     </p>
@@ -103,7 +108,7 @@ const ArbitrationsManagement = () => {
                     </h3>
                     <p className="text-2xl font-bold text-red-600">
                         {
-                            allArbitrations.filter(
+                            allMediations.filter(
                                 (item) => !item.payment_status
                             ).length
                         }
@@ -144,15 +149,31 @@ const ArbitrationsManagement = () => {
                             <option value="Unpaid">Unpaid</option>
                         </select>
                     </div>
+                    <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Filter by Category
+                        </label>
+                        <select
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            {categories.map((category) => (
+                                <option key={category} value={category}>
+                                    {category}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Arbitration Cards Grid */}
+            {/* Mediation Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredArbitrations.map((arbitration) => (
-                    <ArbitrationCard
-                        key={arbitration._id}
-                        arbitration={arbitration}
+                {filteredMediations.map((mediation) => (
+                    <MediationCard
+                        key={mediation._id}
+                        mediation={mediation}
                         onViewDetails={viewDetails}
                         onCreateSession={openSessionModal}
                         formatDate={formatDate}
@@ -161,24 +182,24 @@ const ArbitrationsManagement = () => {
             </div>
 
             {/* Empty State */}
-            {filteredArbitrations.length === 0 && (
+            {filteredMediations.length === 0 && (
                 <div className="text-center py-12">
-                    <div className="text-gray-400 text-6xl mb-4">📋</div>
+                    <div className="text-gray-400 text-6xl mb-4">⚖️</div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        No arbitration cases found
+                        No mediation cases found
                     </h3>
                     <p className="text-gray-500">
-                        {allArbitrations.length === 0
-                            ? "No arbitration cases have been submitted yet."
+                        {allMediations.length === 0
+                            ? "No mediation cases have been submitted yet."
                             : "No cases match your current filters."}
                     </p>
                 </div>
             )}
 
             {/* Create Session Modal */}
-            {isSessionModalOpen && selectedArbitration && (
+            {isSessionModalOpen && selectedMediation && (
                 <SessionModal
-                    arbitration={selectedArbitration}
+                    mediation={selectedMediation}
                     onClose={closeSessionModal}
                 />
             )}
@@ -186,4 +207,4 @@ const ArbitrationsManagement = () => {
     );
 };
 
-export default ArbitrationsManagement;
+export default MediationManagement;
