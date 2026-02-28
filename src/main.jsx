@@ -47,12 +47,12 @@ import AllUsers from "./dashboard/admin/pages/AllUsers";
 import LawyerManagement from "./dashboard/admin/pages/lawyerManagement/LawyerManagement";
 import ArbitratorManagement from "./dashboard/admin/pages/arbitratorsManagement/ArbitratorManagement";
 import MediatorManagement from "./dashboard/admin/pages/MediatorManagement";
-import MyArbitrationFile from "./dashboard/ArbitratorDashboard/pages/MyArbitrationFile"; 
+import MyArbitrationFile from "./dashboard/ArbitratorDashboard/pages/MyArbitrationFile";
 import ArbitrationDetail from "./dashboard/ArbitratorDashboard/pages/ArbitrationDetail";
- import Notification from "./dashboard/ArbitratorDashboard/pages/Notification";
+import Notification from "./dashboard/ArbitratorDashboard/pages/Notification";
 import Finance from "./dashboard/ArbitratorDashboard/pages/Finance";
-import UpcomingHearings from './dashboard/ArbitratorDashboard/pages/UpcommingHearing';
-import HearingDetails from './dashboard/ArbitratorDashboard/pages/HearingDetails';
+import UpcomingHearings from "./dashboard/ArbitratorDashboard/pages/UpcommingHearing";
+import HearingDetails from "./dashboard/ArbitratorDashboard/pages/HearingDetails";
 import ArbitrationsManagement from "./dashboard/admin/pages/arbitrationManagement/ArbitrationsManagement";
 import AdminArbitrationDetails from "./dashboard/admin/pages/arbitrationManagement/AdminArbitrationDetails";
 import Arbitration_Agreement from "./dashboard/admin/pages/Arbitration_Agreement";
@@ -60,9 +60,10 @@ import Mediation_Agreement from "./dashboard/admin/pages/Mediation_Agreement";
 import MediationManagement from "./dashboard/admin/pages/mediationManagement/MediationManagement";
 import AdminMediationDetails from "./dashboard/admin/pages/mediationManagement/AdminMediationDetails";
 
-import Arb_HearingDetails from "./dashboard/userDashboard/components/Arb_HearingDetails.jsx" ;
-import VerdictInputForm from './dashboard/ArbitratorDashboard/pages/Verdictinputform';
-import UserFinance from './dashboard/userDashboard/pages/UserFinance.jsx' ; 
+import Arb_HearingDetails from "./dashboard/userDashboard/components/Arb_HearingDetails.jsx";
+import VerdictInputForm from "./dashboard/ArbitratorDashboard/pages/Verdictinputform";
+import UserFinance from "./dashboard/userDashboard/pages/UserFinance.jsx";
+import LawyerHearingDetails from "./dashboard/lawyerDasgboard/components/LawyerHearingDetails.jsx";
 
 const queryClient = new QueryClient();
 
@@ -128,14 +129,30 @@ createRoot(document.getElementById("root")).render(
               path="lawyer-arbitrations/:id"
               element={<LawyerArbitrationDetails />}
             />
-              <Route path="/dashboard/verdict/create/:arbitrationId" element={<VerdictInputForm />} />
-             <Route path="arbitrator/arbitration/:arbitrationId/hearing/:hearingId" element={<Arb_HearingDetails/>}/>
-              <Route path="arb-arbitrations" element={<MyArbitrationFile />} />
-              <Route path="arbitration-details/:arbitrationId" element={< ArbitrationDetail/>} />
-              <Route path="notification" element={<Notification />} />
-              <Route path="Finance" element={<Finance />} />
-              <Route path="upcoming-hearings" element={<UpcomingHearings />} />
-              <Route path="hearing-details/:arbitrationId/:hearingId" element={<HearingDetails />} />
+            <Route
+              path="lawyer-hearing-details/:arbitrationId/:hearingId"
+              element={<LawyerHearingDetails />}
+            />
+            <Route
+              path="/dashboard/verdict/create/:arbitrationId"
+              element={<VerdictInputForm />}
+            />
+            <Route
+              path="arbitrator/arbitration/:arbitrationId/hearing/:hearingId"
+              element={<Arb_HearingDetails />}
+            />
+            <Route path="arb-arbitrations" element={<MyArbitrationFile />} />
+            <Route
+              path="arbitration-details/:arbitrationId"
+              element={<ArbitrationDetail />}
+            />
+            <Route path="notification" element={<Notification />} />
+            <Route path="Finance" element={<Finance />} />
+            <Route path="upcoming-hearings" element={<UpcomingHearings />} />
+            <Route
+              path="hearing-details/:arbitrationId/:hearingId"
+              element={<HearingDetails />}
+            />
             {/* Mediations */}
             <Route path="my-mediations" element={<MyMediation />} />
             <Route path="my-mediations/:id" element={<MediationDetails />} />
@@ -143,11 +160,6 @@ createRoot(document.getElementById("root")).render(
             <Route path="my-time-slots/:email" element={<LawyerTimeSlots />} />
           </Route>
 
-
-                   
-
-
-                
           {/* ================= ADMIN ROUTES ================= */}
           <Route path="/admin" element={<Dashboard />}>
             <Route path="all-users" element={<AllUsers />} />
@@ -174,17 +186,12 @@ createRoot(document.getElementById("root")).render(
               path="mediation-management"
               element={<MediationManagement />}
             />
-            <Route
-              path="mediations/:id"
-              element={<AdminMediationDetails />}
-            />
+            <Route path="mediations/:id" element={<AdminMediationDetails />} />
           </Route>
-
         </Routes>
       </QueryClientProvider>
     </AuthProvider>
 
     <ToastContainer />
   </BrowserRouter>,
-
 );

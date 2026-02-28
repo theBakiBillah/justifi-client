@@ -6,16 +6,16 @@ import useAxiosPublic from "../../../hooks/useAxiosPublic";
 import LawyerArbitrationHeader from "../components/LawyerArbitrationHeader";
 import LawyerArbClientInformation from "../components/LawyerArbClientInformation";
 import LawyerArbHearing from "../components/LawyerArbHearing";
+import Arb_VerdictSection from "../../arbitratorDashboard/components/Arb_VerdictSection";
 
 const LawyerArbitrationDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const axiosPublic = useAxiosPublic();
 
-  // ✅ FIX: Corrected email to match the representative in the database
   const currentLawyerEmail = "lawyer01@justifi.com";
 
-  // Fetch arbitrations
+  // Fetch all arbitrations
   const { data: allArbitrationsData = [], isLoading } = useQuery({
     queryKey: ["allArbitrations"],
     queryFn: async () => {
@@ -24,7 +24,7 @@ const LawyerArbitrationDetails = () => {
     },
   });
 
-  // ✅ FIX: Robust array normalization — handles array, {arbitrations:[...]}, or single object
+  // Robust array normalization
   const arbitrationsArray = Array.isArray(allArbitrationsData)
     ? allArbitrationsData
     : Array.isArray(allArbitrationsData?.arbitrations)
@@ -33,17 +33,29 @@ const LawyerArbitrationDetails = () => {
         ? [allArbitrationsData]
         : [];
 
-  // ✅ FIX: Find arbitration by arbitrationId first, then fall back to _id
-  // This matches the URL pattern used in LawyerArbitration.jsx (prefers arbitrationId)
+  // Find arbitration by arbitrationId first, then fall back to _id
   const arbitrationData = arbitrationsArray.find(
     (arb) =>
       String(arb.arbitrationId) === String(id) ||
       String(arb._id) === String(id),
   );
 
-  // ✅ FIX: hasAccess is only used as a UI guard, not to block data rendering entirely.
-  // Separating these concerns prevents "Arbitration not found" when the case exists
-  // but the access check fails due to a minor mismatch.
+  const apiArbitrationId = arbitrationData?.arbitrationId;
+
+  // Fetch real hearings from the hearings API — same as arbitrator does
+  const { data: hearings = [], isLoading: hearingsLoading } = useQuery({
+    queryKey: ["hearings", apiArbitrationId],
+    queryFn: async () => {
+      const res = await axiosPublic.get(
+        `/hearings/arbitration/${apiArbitrationId}`,
+      );
+      if (res.data.success) return res.data.data;
+      return [];
+    },
+    enabled: !!apiArbitrationId,
+  });
+
+  // hasAccess: lawyer is listed as a representative (any status)
   const hasAccess =
     arbitrationData?.plaintiffs?.some((plaintiff) =>
       plaintiff.representatives?.some(
@@ -90,7 +102,6 @@ const LawyerArbitrationDetails = () => {
     }
   });
 
-  // Also check defendants in case lawyer represents a defendant
   if (!appointedClient) {
     arbitrationData?.defendants?.forEach((defendant) => {
       const rep = defendant.representatives?.find(
@@ -129,7 +140,6 @@ const LawyerArbitrationDetails = () => {
     return <div className="p-10 text-center">Loading...</div>;
   }
 
-  // ✅ FIX: Show "not found" only when the case truly doesn't exist in the fetched data
   if (!arbitrationData) {
     return (
       <div className="text-center py-20">
@@ -148,7 +158,6 @@ const LawyerArbitrationDetails = () => {
     );
   }
 
-  // ✅ FIX: Show access denied separately — case was found but lawyer isn't a representative
   if (!hasAccess) {
     return (
       <div className="text-center py-20">
@@ -176,28 +185,16 @@ const LawyerArbitrationDetails = () => {
         parties={mergedParties}
         currentLawyerEmail={currentLawyerEmail}
         appointedClient={appointedClient}
-        arbitrationId={arbitrationData?.arbitrationId}
+        arbitrationId={apiArbitrationId}
       />
 
       <LawyerArbHearing
-        hearings={
-          arbitrationData.sessionData
-            ? [
-                {
-                  id: 1,
-                  date: arbitrationData.sessionData.sessionDateTime,
-                  meetLink: arbitrationData.sessionData.meetingLink,
-                  arbitrator1Notes: "",
-                  arbitrator2Notes: "",
-                  arbitrator3Notes: "",
-                  documentsRequired: "",
-                  attendance: "",
-                  result: "",
-                },
-              ]
-            : []
-        }
+        hearings={hearings}
+        isLoading={hearingsLoading}
+        arbitrationId={apiArbitrationId}
       />
+
+      <Arb_VerdictSection arbitration={arbitrationData} />
     </div>
   );
 };

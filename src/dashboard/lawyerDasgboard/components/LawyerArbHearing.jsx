@@ -1,232 +1,66 @@
-import React, { useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaVideo,
-  FaCheckCircle,
   FaCalendarTimes,
-  FaRegWindowClose,
+  FaSpinner,
+  FaExclamationTriangle,
+  FaCheckCircle,
+  FaEye,
 } from "react-icons/fa";
 
-const LawyerArbHearing = ({ hearings = [] }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [modalContent, setModalContent] = useState({
-    type: "",
-    content: "",
-    hearingDate: "",
-  });
+const LawyerArbHearing = ({
+  hearings = [],
+  isLoading = false,
+  arbitrationId,
+}) => {
+  const navigate = useNavigate();
 
-  const openModal = (type, content, hearingDate) => {
-    setModalContent({
-      type,
-      content: content || "No details provided.",
-      hearingDate,
-    });
-    setShowModal(true);
+  const handleRowClick = (hearing) => {
+    if (hearing.hearingId && arbitrationId) {
+      navigate(
+        `/dashboard/lawyer-hearing-details/${arbitrationId}/${hearing.hearingId}`,
+      );
+    }
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setModalContent({ type: "", content: "", hearingDate: "" });
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return { date: "-", time: "-" };
-
-    const date = new Date(dateString);
-
-    return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-  };
-
-  const DetailModal = () => {
-    if (!showModal) return null;
-
+  // ── Loading ──────────────────────────────────────────────────
+  if (isLoading) {
     return (
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-        onClick={closeModal}
-      >
-        <div
-          className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex justify-between items-center">
-            <h3 className="text-xl font-bold text-white">
-              {modalContent.type === "notes"
-                ? "Arbitrator Notes"
-                : "Documents Required"}
-            </h3>
-            <button
-              onClick={closeModal}
-              className="text-white hover:text-gray-200 transition-colors"
-            >
-              <FaRegWindowClose className="text-xl" />
-            </button>
-          </div>
-
-          <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
-            {modalContent.hearingDate && (
-              <div className="mb-4 pb-3 border-b border-gray-200">
-                <p className="text-sm text-gray-600">
-                  Hearing Date:{" "}
-                  <span className="font-semibold text-gray-800">
-                    {modalContent.hearingDate}
-                  </span>
-                </p>
-              </div>
-            )}
-
-            <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {modalContent.content}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-8">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-8 bg-green-600 rounded-full mr-3"></div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Hearings & Proceedings
+          </h2>
+        </div>
+        <div className="text-center py-12">
+          <div className="flex justify-center items-center">
+            <FaSpinner className="animate-spin text-4xl text-blue-600 mr-4" />
+            <div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                Loading Hearings
+              </h3>
+              <p className="text-gray-500">
+                Please wait while we fetch the hearings data...
               </p>
             </div>
-          </div>
-
-          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
-            <button
-              onClick={closeModal}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>
     );
-  };
+  }
 
-  return (
-    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-      <DetailModal />
-
-      <div className="flex items-center mb-6">
-        <div className="w-1 h-8 bg-green-600 rounded-full mr-3"></div>
-        <h2 className="text-2xl font-bold text-gray-900">
-          Arbitration Proceedings
-        </h2>
-      </div>
-
-      {hearings && hearings.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {[
-                  "Hearing Date",
-                  "Arbitrator 1 Notes",
-                  "Arbitrator 2 Notes",
-                  "Arbitrator 3 Notes",
-                  "Result",
-                  "Documents Required",
-                  "Meeting Link",
-                  "Attendance",
-                ].map((title) => (
-                  <th
-                    key={title}
-                    className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase bg-gray-100"
-                  >
-                    {title}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody className="bg-white divide-y divide-gray-200">
-              {hearings.map((hearing, index) => {
-                const { date, time } = formatDate(hearing?.date);
-                const hearingDateTime = `${date} ${time}`;
-
-                const note1 = hearing?.arbitrator1Notes || "No notes provided.";
-                const note2 = hearing?.arbitrator2Notes || "No notes provided.";
-                const note3 = hearing?.arbitrator3Notes || "No notes provided.";
-                const documents =
-                  hearing?.documentsRequired || "No documents required.";
-                const attendance = hearing?.attendance || "Not specified.";
-                const result = hearing?.result || "Pending";
-
-                return (
-                  <tr key={hearing?.id || index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {date}
-                      </div>
-                      <div className="text-sm text-gray-500">{time}</div>
-                    </td>
-
-                    {[note1, note2, note3].map((note, idx) => (
-                      <td key={idx} className="px-6 py-4 text-sm max-w-xs">
-                        <div
-                          className="bg-blue-50 p-3 rounded-lg border cursor-pointer"
-                          onClick={() =>
-                            openModal("notes", note, hearingDateTime)
-                          }
-                        >
-                          <p className="line-clamp-3 text-sm">{note}</p>
-                          {note.length > 100 && (
-                            <span className="text-xs text-blue-600 font-medium">
-                              Click to expand
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    ))}
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        {result}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-sm max-w-xs">
-                      <div
-                        className="bg-gray-50 p-3 rounded-lg border cursor-pointer"
-                        onClick={() =>
-                          openModal("documents", documents, hearingDateTime)
-                        }
-                      >
-                        <p className="line-clamp-3 text-sm">{documents}</p>
-                        {documents.length > 100 && (
-                          <span className="text-xs text-gray-600 font-medium">
-                            Click to expand
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {hearing?.meetLink ? (
-                        <a
-                          href={hearing.meetLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-blue-600 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100"
-                        >
-                          <FaVideo className="mr-2" />
-                          Join Meeting
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <FaCheckCircle className="mr-1" />
-                        {attendance}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+  // ── Empty ────────────────────────────────────────────────────
+  if (!hearings || hearings.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-8">
+        <div className="flex items-center mb-6">
+          <div className="w-1 h-8 bg-green-600 rounded-full mr-3"></div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Hearings & Proceedings
+          </h2>
         </div>
-      ) : (
         <div className="text-center py-12">
           <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
             <FaCalendarTimes className="text-6xl text-gray-300 mb-6 mx-auto" />
@@ -238,7 +72,156 @@ const LawyerArbHearing = ({ hearings = [] }) => {
             </p>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // ── Table ────────────────────────────────────────────────────
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-8">
+      {/* Section Header */}
+      <div className="flex items-center mb-6">
+        <div className="w-1 h-8 bg-green-600 rounded-full mr-3"></div>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Hearings & Proceedings
+        </h2>
+        <span className="ml-3 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+          {hearings.length} hearing{hearings.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-100">
+            <tr>
+              {[
+                "Hearing",
+                "Date & Time",
+                "Status",
+                "Duration",
+                "Agenda",
+                "Meeting Link",
+                "Details",
+              ].map((col) => (
+                <th
+                  key={col}
+                  className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody className="bg-white divide-y divide-gray-200">
+            {hearings.map((hearing, index) => (
+              <tr
+                key={hearing.hearingId || hearing._id || index}
+                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => handleRowClick(hearing)}
+              >
+                {/* Hearing # */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-bold text-gray-900">
+                    {hearing.hearingNumber || "N/A"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {hearing.hearingId || "No ID"}
+                  </div>
+                </td>
+
+                {/* Date & Time */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-semibold text-gray-900">
+                    {hearing.date
+                      ? new Date(hearing.date).toLocaleDateString()
+                      : "Date not set"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {hearing.date
+                      ? new Date(hearing.date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : ""}
+                  </div>
+                </td>
+
+                {/* Status */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                      hearing.status === "completed"
+                        ? "bg-green-100 text-green-800"
+                        : hearing.status === "scheduled"
+                          ? "bg-blue-100 text-blue-800"
+                          : hearing.status === "cancelled"
+                            ? "bg-red-100 text-red-800"
+                            : hearing.status === "postponed"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : hearing.status === "ongoing"
+                                ? "bg-violet-100 text-violet-800"
+                                : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {hearing.status
+                      ? hearing.status.charAt(0).toUpperCase() +
+                        hearing.status.slice(1)
+                      : "Scheduled"}
+                  </span>
+                </td>
+
+                {/* Duration */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {hearing.duration ? `${hearing.duration} min` : "—"}
+                </td>
+
+                {/* Agenda */}
+                <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
+                  <div className="line-clamp-2">
+                    {hearing.hearingAgenda || "No agenda provided"}
+                  </div>
+                </td>
+
+                {/* Meeting Link */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {hearing.meetLink ? (
+                    <a
+                      href={hearing.meetLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <FaVideo className="mr-1" />
+                      Join Meeting
+                    </a>
+                  ) : (
+                    <span className="text-gray-500 text-sm">
+                      No link provided
+                    </span>
+                  )}
+                </td>
+
+                {/* Details */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <button
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRowClick(hearing);
+                    }}
+                    title="View hearing details"
+                  >
+                    <FaEye className="mr-1" />
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
