@@ -6,6 +6,18 @@ const LawyerCard = ({ lawyer }) => {
     const rating = lawyer.rating || 4.5;
     const experience = lawyer.experience || "5+ Years";
 
+    // Safe way to display specialization
+    const displaySpecialization = () => {
+        if (!lawyer?.specialization) return "Not specified";
+        if (Array.isArray(lawyer.specialization)) {
+            return lawyer.specialization.join(", ");
+        }
+        if (typeof lawyer.specialization === "string") {
+            return lawyer.specialization;
+        }
+        return "Not specified";
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -37,7 +49,7 @@ const LawyerCard = ({ lawyer }) => {
                         {lawyer.name}
                     </h3>
                     <p className="text-sm text-gray-600 line-clamp-1 italic">
-                        {lawyer.specialization?.join(", ")}
+                        {displaySpecialization()}
                     </p>
                 </div>
 

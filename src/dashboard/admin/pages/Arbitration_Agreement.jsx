@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import React, { useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import useAxiosSecure from "../../../hooks/useAxiosSecure";
-import ArbAgreementPreview from "../components/ArbAgreementPreview";
 import ArbitrationForm from "../components/ArbitrationForm";
+import ArbAgreementPreview from "../components/ArbAgreementPreview";
+import useAxiosSecure from "../../../hooks/useAxiosSecure";
 
 function Arbitration_Agreement() {
   const [showPreview, setShowPreview] = useState(false);

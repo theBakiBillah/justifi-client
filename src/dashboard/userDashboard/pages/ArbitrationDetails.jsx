@@ -17,6 +17,8 @@ import Arb_RepresentativeSection from "../components/Arb_RepresentativeSection";
 import Arb_DocumentsSection from "../components/Arb_DocumentsSection";
 import Arb_HearingSection from "../components/Arb_HearingSection";
 import Arb_FinalVerdictSection from "../components/Arb_FinalVerdictSection";
+import Arb_VerdictSection from "../../ArbitratorDashboard/components/Arb_VerdictSection";
+import PaymentSection from "../components/PaymentSection"; 
 
 const ArbitrationDetails = () => {
     const { id } = useParams();
@@ -184,13 +186,17 @@ const ArbitrationDetails = () => {
                             caseId={arbitration?._id || arbitration?.arbitrationId}
                             onUpdateArbitration={handleUpdateArbitration}
                         />
-                        <Arb_DocumentsSection />
+                        <Arb_DocumentsSection arbitrationId={ arbitration?.arbitrationId} email={currentUser?.email} />
                         <Arb_HearingSection 
+                            arbitrationId={ arbitration?.arbitrationId}
                             selectedHearing={selectedHearing}
                             onHearingSelect={setSelectedHearing}
                             onHearingClose={() => setSelectedHearing(null)}
                         />
-                        <Arb_FinalVerdictSection arbitration={arbitration} />
+                        {/*Arbitration Payment Installment section*/}
+                        <PaymentSection arbitration={arbitration} />
+                        {/*arbitraion verdict dection ekhane */}
+                        <Arb_VerdictSection  arbitration={arbitration}  />
                     </>
                 )}
 

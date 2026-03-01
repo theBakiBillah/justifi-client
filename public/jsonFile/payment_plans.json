@@ -1,0 +1,84 @@
+//Admin Create Installment plan here for the arbitration.
+{
+  "_id": "ObjectId",
+  "planId": "PLAN-ARB6996-001",
+  "arbitrationId": "ARB-6996F-51084196",
+
+  "totalCost": 10000,
+  "currency": "BDT",
+  "splitType": "equal",
+  "perPartyCost": 5000,
+
+  "installments": [
+    {
+      "installmentNumber": 1,
+      "installmentId": "INST-001",
+      "totalAmount": 3000,
+      "perPartyAmount": 1500,
+      "dueDate": "2026-02-25T00:00:00.000Z",
+      "status": "partially_paid",
+
+      "partyPayments": [
+        {
+          "role": "plaintiff",
+          "email": "mhasan221082@bscse.uiu.ac.bd",
+          "amountDue": 1500,
+          "status": "paid",
+          "paymentId": "PAY-001",
+          "paidAt": "2026-02-22T10:00:00.000Z"
+        },
+        {
+          "role": "defendant",
+          "email": "mehedi1013401@gmail.com",
+          "amountDue": 1500,
+          "status": "unpaid",
+          "paymentId": null,
+          "paidAt": null
+        }
+      ]
+    },
+    {
+      "installmentNumber": 2,
+      "installmentId": "INST-002",
+      "totalAmount": 4000,
+      "perPartyAmount": 2000,
+      "dueDate": "2026-03-10T00:00:00.000Z",
+      "status": "pending",
+      "partyPayments": [
+        {
+          "role": "plaintiff",
+          "email": "mhasan221082@bscse.uiu.ac.bd",
+          "amountDue": 2000,
+          "status": "unpaid",
+          "paymentId": null,
+          "paidAt": null
+        },
+        {
+          "role": "defendant",
+          "email": "mehedi1013401@gmail.com",
+          "amountDue": 2000,
+          "status": "unpaid",
+          "paymentId": null,
+          "paidAt": null
+        }
+      ]
+    },
+    {
+      "installmentNumber": 3,
+      "installmentId": "INST-003",
+      "totalAmount": 3000,
+      "perPartyAmount": 1500,
+      "dueDate": "2026-03-25T00:00:00.000Z",
+      "status": "pending",
+      "partyPayments": [...]
+    }
+  ],
+
+  "totalPaid": 1500,
+  "totalPending": 8500,
+  "planStatus": "active",
+
+  "createdBy": "admin@justifi.com",
+  "createdAt": "2026-02-20T00:00:00.000Z",
+  "updatedAt": "2026-02-22T00:00:00.000Z"
+}

@@ -1,0 +1,33 @@
+//When User actually pay the bill then this record  will be create. 
+
+{
+  "_id": "ObjectId",
+  "paymentId": "PAY-001",
+  "arbitrationId": "ARB-6996F-51084196",
+  "planId": "PLAN-ARB6996-001",
+  "installmentId": "INST-001",
+
+  "paidBy": {
+    "email": "mhasan221082@bscse.uiu.ac.bd",
+    "name": "md mehedi hasan",
+    "role": "plaintiff"
+  },
+
+  "amount": 1500,
+  "currency": "BDT",
+  "paymentMethod": "bkash",
+  "transactionRef": "TXN_BKS_12345",
+
+  "status": "completed",
+  "paidAt": "2026-02-22T10:00:00.000Z",
+
+  "adminApproval": {
+    "status": "pending",
+    "approvedBy": null,
+    "approvedAt": null,
+    "remarks": ""
+  },
+
+  "distributionId": null,
+  "createdAt": "2026-02-22T10:00:00.000Z"
+}

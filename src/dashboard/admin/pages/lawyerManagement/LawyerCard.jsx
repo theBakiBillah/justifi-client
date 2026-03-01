@@ -58,7 +58,25 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
     };
   };
 
-  const experienceLevel = getExperienceLevel(lawyer.experience);
+  // Helper function to safely get specialization array
+  const getSpecializations = () => {
+    if (!lawyer.specialization) return [];
+    if (Array.isArray(lawyer.specialization)) return lawyer.specialization;
+    if (typeof lawyer.specialization === "string") return [lawyer.specialization];
+    return [];
+  };
+
+  // Helper function to safely get languages
+  const getLanguages = () => {
+    if (!lawyer.languages) return [];
+    if (Array.isArray(lawyer.languages)) return lawyer.languages;
+    if (typeof lawyer.languages === "string") return [lawyer.languages];
+    return [];
+  };
+
+  const specializations = getSpecializations();
+  const languages = getLanguages();
+  const experienceLevel = getExperienceLevel(lawyer.experience || 0);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden group">
@@ -81,9 +99,9 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
                 <div className="w-full h-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
                     {lawyer.name
-                      .split(" ")
+                      ?.split(" ")
                       .map((n) => n[0])
-                      .join("")}
+                      .join("") || "NA"}
                   </span>
                 </div>
               </div>
@@ -91,7 +109,7 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
               <div
                 className={`absolute -bottom-1 -right-1 ${experienceLevel.badgeColor} text-white text-xs font-medium px-2 py-1 rounded border border-white`}
               >
-                {lawyer.experience}y
+                {lawyer.experience || 0}y
               </div>
             </div>
 
@@ -103,14 +121,14 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
                   : lawyer.name}
               </h3>
               <p className="text-sm text-gray-600 font-medium mb-2">
-                {lawyer.bar_id}
+                {lawyer.bar_id || "Bar ID not specified"}
               </p>
               <div className="flex items-center text-sm text-gray-500">
                 <FaMapMarkerAlt className="w-3 h-3 mr-1 flex-shrink-0" />
                 <span className="truncate">
                   {searchTerm
                     ? highlightText(lawyer.court, searchTerm)
-                    : lawyer.court}
+                    : lawyer.court || "Court not specified"}
                 </span>
               </div>
             </div>
@@ -138,7 +156,7 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
           {/* Success Rate */}
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900 mb-1">
-              {lawyer.successRate}%
+              {lawyer.successRate || 0}%
             </div>
             <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">
               Success Rate
@@ -148,7 +166,7 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
           {/* Cases Handled */}
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900 mb-1">
-              {lawyer.casesHandled}
+              {lawyer.casesHandled || 0}
             </div>
             <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">
               Cases
@@ -158,7 +176,7 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
           {/* Consultation Fee */}
           <div className="text-center">
             <div className="text-xl font-bold text-gray-900 mb-1">
-              ${lawyer.fee}
+              ${lawyer.fee || 0}
             </div>
             <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">
               Fee
@@ -171,21 +189,21 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
           <div className="flex justify-between text-sm">
             <span className="font-medium text-gray-700">Case Success</span>
             <span className="font-semibold text-gray-900">
-              {lawyer.successRate}%
+              {lawyer.successRate || 0}%
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full ${
-                lawyer.successRate >= 90
+                (lawyer.successRate || 0) >= 90
                   ? "bg-emerald-600"
-                  : lawyer.successRate >= 80
+                  : (lawyer.successRate || 0) >= 80
                     ? "bg-green-500"
-                    : lawyer.successRate >= 70
+                    : (lawyer.successRate || 0) >= 70
                       ? "bg-amber-500"
                       : "bg-red-500"
               }`}
-              style={{ width: `${lawyer.successRate}%` }}
+              style={{ width: `${lawyer.successRate || 0}%` }}
             ></div>
           </div>
         </div>
@@ -197,18 +215,24 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
           Areas of Expertise
         </h4>
         <div className="flex flex-wrap gap-2">
-          {lawyer.specialization.slice(0, 4).map((spec, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 text-sm font-medium border border-blue-200 hover:bg-blue-100 transition-colors duration-150"
-            >
-              {searchTerm ? highlightText(spec, searchTerm) : spec}
-            </span>
-          ))}
-          {lawyer.specialization.length > 4 && (
-            <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-gray-100 text-gray-600 text-sm font-medium border border-gray-300">
-              +{lawyer.specialization.length - 4}
-            </span>
+          {specializations.length > 0 ? (
+            <>
+              {specializations.slice(0, 4).map((spec, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 text-sm font-medium border border-blue-200 hover:bg-blue-100 transition-colors duration-150"
+                >
+                  {searchTerm ? highlightText(spec, searchTerm) : spec}
+                </span>
+              ))}
+              {specializations.length > 4 && (
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-gray-100 text-gray-600 text-sm font-medium border border-gray-300">
+                  +{specializations.length - 4}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-gray-500">No specializations listed</span>
           )}
         </div>
       </div>
@@ -221,7 +245,7 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
             <div className="flex items-center space-x-1">
               <FaStar className="w-4 h-4 text-amber-500" />
               <span className="text-lg font-semibold text-gray-900">
-                {lawyer.rating}
+                {lawyer.rating || 0}
               </span>
             </div>
             <span className="text-sm text-gray-500">Rating</span>
@@ -231,7 +255,7 @@ const LawyerCard = ({ lawyer, onEdit, onDelete, searchTerm = "" }) => {
           <div className="flex items-center space-x-2">
             <FaLanguage className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-700">
-              {lawyer.languages.length} languages
+              {languages.length} {languages.length === 1 ? "language" : "languages"}
             </span>
           </div>
         </div>

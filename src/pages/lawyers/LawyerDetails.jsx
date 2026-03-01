@@ -11,8 +11,24 @@ export default function LawyerDetails() {
     const lawyer = location.state?.lawyer;
 
     if (!lawyer) {
-        return <div>No lawyer data found.</div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p className="text-xl text-gray-600">No lawyer data found.</p>
+            </div>
+        );
     }
+
+    // Helper function to safely display array fields
+    const displayArrayField = (field) => {
+        if (!field) return "Not specified";
+        if (Array.isArray(field)) {
+            return field.join(", ");
+        }
+        if (typeof field === "string") {
+            return field;
+        }
+        return "Not specified";
+    };
 
     return (
         <div className="bg-white text-gray-900">
@@ -21,12 +37,12 @@ export default function LawyerDetails() {
                 {/* Left Content */}
                 <div>
                     <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                        {`I’m ${lawyer.name}`}
+                        {`I'm ${lawyer.name}`}
                     </h1>
                     <p className="text-lg md:text-xl text-gray-700 mb-6">
-                        {lawyer.court}
+                        {lawyer.court || "Court not specified"}
                     </p>
-                    <p className="text-gray-600 mb-6">{lawyer.description}</p>
+                    <p className="text-gray-600 mb-6">{lawyer.description || "No description available."}</p>
 
                     {/* Show Book Appointment only if currentUser is not a lawyer */}
                     {currentUser?.role !== "lawyer" && (
@@ -50,12 +66,12 @@ export default function LawyerDetails() {
                     <div className="mt-3 space-y-2 flex justify-center gap-40">
                         <p className="text-lg font-medium flex justify-center items-center gap-1.5">
                             <TbCoinTaka />
-                            <span className="font-semibold">{lawyer.fee}</span>
+                            <span className="font-semibold">{lawyer.fee || "Not specified"}</span>
                         </p>
                         <p className="text-lg font-medium flex justify-center items-center gap-1.5">
                             <FaStar className="font-semibold text-yellow-300" />
                             <span className="font-semibold text-yellow-600">
-                                {lawyer.rating}
+                                {lawyer.rating || "4.5"}
                             </span>
                         </p>
                     </div>
@@ -69,7 +85,7 @@ export default function LawyerDetails() {
                     <h3 className="text-lg font-semibold mb-2 flex justify-center items-center gap-1.5">
                         <FaGraduationCap /> Qualification
                     </h3>
-                    <p className="text-gray-600">{lawyer.qualification}</p>
+                    <p className="text-gray-600">{lawyer.qualification || "Not specified"}</p>
                 </div>
 
                 {/* Specialization */}
@@ -77,7 +93,7 @@ export default function LawyerDetails() {
                     <h3 className="text-lg font-semibold mb-2 flex justify-center items-center gap-1.5">
                         <GrUserExpert /> Specialization
                     </h3>
-                    <p className="text-gray-600">{lawyer.specialization.join(", ")}</p>
+                    <p className="text-gray-600">{displayArrayField(lawyer.specialization)}</p>
                 </div>
 
                 {/* Address */}
@@ -85,7 +101,7 @@ export default function LawyerDetails() {
                     <h3 className="text-lg font-semibold mb-2 flex justify-center items-center gap-1.5">
                         <FaLocationDot /> Address
                     </h3>
-                    <p className="text-gray-600">{lawyer.address}</p>
+                    <p className="text-gray-600">{lawyer.address || "Not specified"}</p>
                 </div>
 
                 {/* Preferred Language */}
@@ -93,7 +109,7 @@ export default function LawyerDetails() {
                     <h3 className="text-lg font-semibold mb-2 flex justify-center items-center gap-1.5">
                         <GrLanguage /> Preferred Language
                     </h3>
-                    <p className="text-gray-600">{lawyer.languages.join(", ")}</p>
+                    <p className="text-gray-600">{displayArrayField(lawyer.languages)}</p>
                 </div>
             </section>
         </div>

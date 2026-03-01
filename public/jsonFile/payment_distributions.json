@@ -1,0 +1,54 @@
+//After Admin approve  — patment of the boht party are distubuted at a time।
+
+{
+  "_id": "ObjectId",
+  "distributionId": "DIST-001",
+  "arbitrationId": "ARB-6996F-51084196",
+  "planId": "PLAN-ARB6996-001",
+  "installmentId": "INST-001",
+
+  "paymentIds": ["PAY-001", "PAY-002"],
+  "totalCollected": 3000,
+  "currency": "BDT",
+
+  "platformCut": {
+    "percentage": 20,
+    "amount": 600
+  },
+
+  "distributableAmount": 2400,
+
+  "arbitratorShares": [
+    {
+      "role": "presidingArbitrator",
+      "name": "Arbitrator 01",
+      "email": "arbitrator01@justifi.com",
+      "sharePercentage": 50,
+      "amount": 1200,
+      "status": "paid",
+      "paidAt": "2026-02-23T10:00:00.000Z"
+    },
+    {
+      "role": "arbitrator1",
+      "name": "Aminul Ghani Titto",
+      "email": "aminul@gmail.com",
+      "sharePercentage": 25,
+      "amount": 600,
+      "status": "paid",
+      "paidAt": "2026-02-23T10:00:00.000Z"
+    },
+    {
+      "role": "arbitrator2",
+      "name": "Adv Najrul Mollah",
+      "email": "arbitrator01@justifi.com",
+      "sharePercentage": 25,
+      "amount": 600,
+      "status": "paid",
+      "paidAt": "2026-02-23T10:00:00.000Z"
+    }
+  ],
+
+  "distributedBy": "admin@justifi.com",
+  "distributedAt": "2026-02-23T10:00:00.000Z",
+  "notes": "Installment 1 distribution"
+}

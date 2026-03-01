@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import SessionModal from "./SessionModal";
+import AdminPaymentManager from "../../components/AdminPaymentManager";
+import Arb_HearingSection from "../../../userDashboard/components/Arb_HearingSection";
+import Arb_VerdictSection from "../../../ArbitratorDashboard/components/Arb_VerdictSection";
+import ArbitrationAgreement from "../../../ArbitratorDashboard/components/ArbitrationAgreement"; 
 
 const AdminArbitrationDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedArbitration, setSelectedArbitration] = useState(null);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
+    const [selectedHearing, setSelectedHearing] = useState(null);
 
   // Get arbitration data from navigation state
   const arbitration = location.state?.arbitration;
@@ -363,6 +368,21 @@ const AdminArbitrationDetails = () => {
           </div>
         </div>
 
+        {/*Payment Installment create and paymnet approved here*/}
+         <AdminPaymentManager arbitration={arbitration} />
+
+         <Arb_HearingSection 
+                            arbitrationId={ arbitration?.arbitrationId}
+                            selectedHearing={selectedHearing}
+                            onHearingSelect={setSelectedHearing}
+                            onHearingClose={() => setSelectedHearing(null)}
+          />
+          {/*Just Show the agreemt that page comes form arbitratorDashbord component*/ }
+          <ArbitrationAgreement arbitration={arbitration} />
+
+          {/*arbitraion verdict section */}
+          <Arb_VerdictSection  arbitration={arbitration}  />
+                        
         {/* Additional Information */}
         <div className="mt-8 bg-white rounded-lg shadow border border-gray-200 p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -405,7 +425,9 @@ const AdminArbitrationDetails = () => {
         />
       )}
     </div>
+  
   );
+
 };
 
 export default AdminArbitrationDetails;
